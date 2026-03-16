@@ -73,7 +73,7 @@ QS is reported with `gpt-5-mini` as the primary judge.
 
 | Model | Setting | QS |
 |-------|---------|----|
-| GPT-5 | Reasoning Low + Raw | 72.12% |
+| GPT-5 | Raw | 72.12% |
 | Qwen3-VL-8B-Instruct | Raw | 40.14% |
 | Qwen3-VL-8B-Instruct | SGM | 27.98% |
 | Qwen3-VL-8B-Instruct | D | 21.69% |
