@@ -8,7 +8,7 @@ Official code for ATM-Bench: a benchmark for long-term multimodal personalized A
 
 **ATM-Bench** is the first benchmark for **multimodal, multi-source personalized referential memory QA** over long time horizons (~4 years) with **evidence-grounded** retrieval and answering.
 
-<video src="docs/images/ATM-Bench-demo.mp4" controls width="100%"></video>
+<video src="https://atmbench.github.io/static/videos/ATM-Bench-demo.mp4" controls width="100%"></video>
 
 > **Paper:** [According to Me: Long-Term Personalized Referential Memory QA](https://arxiv.org/abs/2603.01990)  
 > **Project Page:** [https://atmbench.github.io/](https://atmbench.github.io/)
