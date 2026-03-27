@@ -55,6 +55,7 @@ ATM-Bench-Hard 上的初始通用智能体结果如下。QS 分数使用 `gpt-5-
 | Codex | GPT-5.2 | 0.397 | 15.46M | 38.94M |
 | Codex | GPT-5.4* | 0.296 | 14.29M | 48.28M |
 | OpenCode | GLM-5 | 0.270 | 16.89M | 62.56M |
+| OpenCode | Qwen3.5-397B-A17B | 0.245 | 12.06M | 49.16M |
 | OpenCode | Kimi K2.5 | 0.303 | 8.46M | 27.92M |
 | OpenCode | MiniMax M2.5 | 0.229 | 14.5M | 63.32M |
 | OpenCode | MiniMax M2.7 | 0.278 | 13.48M | 48.49M |
