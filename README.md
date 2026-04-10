@@ -30,9 +30,10 @@ Official code for ATM-Bench: a benchmark for long-term multimodal personalized A
     - [Memory Organization](#memory-organization)
   - [NIAH Evaluation Setup](#niah-evaluation-setup)
   - [🚀 Quick Start](#-quick-start)
+    - [Download Dataset](#download-dataset)
     - [Installation](#installation)
     - [API Keys](#api-keys)
-    - [Generate Memory Files First](#generate-memory-files-first)
+    - [Prepare Memory Files](#prepare-memory-files)
     - [Quick commands (MMRAG + Oracle)](#quick-commands-mmrag--oracle)
     - [Baseline Compatibility and Environments](#baseline-compatibility-and-environments)
   - [📁 Repository Structure](#-repository-structure)
@@ -47,7 +48,7 @@ Official code for ATM-Bench: a benchmark for long-term multimodal personalized A
 - **2026-03-03:** arXiv paper release ([2603.01990](https://arxiv.org/abs/2603.01990))
 - **2026-03-04:** Initial codebase release, including baseline implementations for MMRAG, Oracle, NIAH, and four ported third-party baselines (A-Mem, HippoRAG2, mem0, MemoryOS).
 - **2026-03-12:** Initial General-Purpose Agent benchmark results release for Claude Code, Codex, and OpenCode.
-- **2026-03-12:** ATM-Bench data release on Hugging Face ([Jingbiao/ATM-Bench](https://huggingface.co/datasets/Jingbiao/ATM-Bench)).
+- **2026-03-12:** ATM-Bench data release on Hugging Face ([ATM-Bench](https://huggingface.co/datasets/Jingbiao/ATM-Bench)).
 - **2026-03-13:** Fixed Opencode Token Accounting and updated OpenClaw results.
 - **Coming soon:** General-Purpose Agents benchmarking support, including OpenClaw.
 
@@ -166,6 +167,34 @@ See:
 <a id="quick-start"></a>
 ## 🚀 Quick Start
 
+### Download Dataset
+
+ATM-Bench is hosted on Hugging Face at [`Jingbiao/ATM-Bench`](https://huggingface.co/datasets/Jingbiao/ATM-Bench). A one-shot script downloads the full released dataset and stages the files where the evaluation scripts expect them.
+
+**Full download (~3.3 GB)** — includes QA, NIAH pools, preprocessed memory, emails, raw images, raw videos, and the GPS reverse-geocoding cache:
+
+```bash
+bash scripts/download_data.sh
+```
+
+This populates:
+
+```
+data/atm-bench/atm-bench.json
+data/atm-bench/atm-bench-hard.json
+data/atm-bench/niah/...
+data/raw_memory/email/emails.json                   # emails
+data/raw_memory/image/...                           # raw images
+data/raw_memory/video/...                           # raw videos
+data/raw_memory/geocoding_cache/...                 # GPS reverse-geocoding cache
+output/image/qwen3vl2b/batch_results.json           # preprocessed image memory
+output/video/qwen3vl2b/batch_results.json           # preprocessed video memory
+```
+
+The HF files `data/processed_memory/{image,video}_batch_results.json` are automatically renamed/copied into `output/image/qwen3vl2b/batch_results.json` and `output/video/qwen3vl2b/batch_results.json` by the script.
+
+The script uses the `huggingface_hub` Python package (installed automatically if missing). If the dataset is private, run `huggingface-cli login` first.
+
 ### Installation
 
 ```bash
@@ -187,9 +216,22 @@ Or use local key files (gitignored):
 - `api_keys/.openai_key`
 - `api_keys/.vllm_key`
 
-### Generate Memory Files First
+### Prepare Memory Files
 
-Before running `MMRAG` or `Oracle`, generate the image/video `batch_results.json` files:
+Before running baselines, the image/video `batch_results.json` files must exist under `output/{image,video}/qwen3vl2b/`. You have two options:
+
+**Option A (recommended): download the preprocessed memory from Hugging Face.**
+
+If you already ran `bash scripts/download_data.sh` above, the preprocessed memory files are already staged at:
+
+- `output/image/qwen3vl2b/batch_results.json`
+- `output/video/qwen3vl2b/batch_results.json`
+
+Nothing more to do — you can skip straight to the Quick commands.
+
+**Option B: regenerate the memory files from raw images/videos.**
+
+Only needed if you want to re-run preprocessing (for example, to try a different VLM or your own raw memory). Requires raw images under `data/raw_memory/image/` and videos under `data/raw_memory/video/`:
 
 ```bash
 # Optional but recommended: preload reverse-geocoding cache
@@ -208,11 +250,21 @@ bash scripts/memory_processor/video/memory_itemize/run_qwen3vl2b.sh
 
 ```bash
 # MMRAG (runs both ATM-bench and ATM-bench-hard)
+#   Needs: `bash scripts/download_data.sh`
+#        + a running vLLM endpoint at http://127.0.0.1:8000/v1/chat/completions
+#          serving Qwen/Qwen3-VL-8B-Instruct-FP8 (override with VLLM_ENDPOINT /
+#          ANSWERER_MODEL env vars).
 bash scripts/QA_Agent/MMRAG/run.sh
 
-# Oracle (upper bound; raw multimodal evidence)
+# Oracle with Qwen3-VL-8B on raw images/videos (local upper bound)
+#   Needs: `bash scripts/download_data.sh`
+#        + a running vLLM endpoint serving Qwen/Qwen3-VL-8B-Instruct-FP8.
 bash scripts/QA_Agent/Oracle/run_oracle_qwen3vl8b_raw.sh
 
+# Oracle with GPT-5 on raw images/videos (no local GPU / vLLM)
+#   Needs: `bash scripts/download_data.sh`
+#        + OPENAI_API_KEY set in the environment or api_keys/.openai_key.
+bash scripts/QA_Agent/Oracle/run_oracle_gpt5.sh
 ```
 
 ### Baseline Compatibility and Environments
