@@ -204,6 +204,14 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+On macOS / Apple Silicon, use the local setup helper instead. The full
+requirements include optional GPU/video-serving packages (`vllm`, `decord`) that
+are not reliably available via pip on macOS:
+
+```bash
+bash scripts/setup_local_mac.sh
+```
+
 ### API Keys
 
 Set via environment variables:
