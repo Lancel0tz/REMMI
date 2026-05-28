@@ -1,0 +1,55 @@
+[hybrid-retrieval] experiment summary:
+{
+  "config": {
+    "split": "hard",
+    "qa_file": "./data/atm-bench/atm-bench-hard.json",
+    "method_name": "mmrag_hybrid_cpu_hard_rrf_m0.3_s0.4_d0.3_soft",
+    "retriever": "hybrid",
+    "text_embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "retriever_batch_size": 64,
+    "media_source": "batch_results",
+    "answerer": "disabled (--no-evidence)",
+    "retrieval_top_k_for_answerer": 10,
+    "retrieval_max_k_for_metrics": 200
+  },
+  "dataset": {
+    "question_count": 31,
+    "avg_gold_evidence_per_question": 6.258,
+    "max_gold_evidence_per_question": 17,
+    "avg_retrieved_candidates": 200.0
+  },
+  "recall": {
+    "R@1": 0.055584,
+    "R@5": 0.197282,
+    "R@10": 0.280663,
+    "R@25": 0.352792,
+    "R@50": 0.453154,
+    "R@100": 0.561842,
+    "R@200": 0.628111,
+    "count": 31.0
+  },
+  "coverage": {
+    "any_hit@1": 0.290323,
+    "any_hit@5": 0.451613,
+    "any_hit@10": 0.516129,
+    "any_hit@25": 0.612903,
+    "any_hit@50": 0.774194,
+    "any_hit@100": 0.806452,
+    "any_hit@200": 0.806452
+  },
+  "full_coverage": {
+    "all_gold_found@1": 0.0,
+    "all_gold_found@5": 0.032258,
+    "all_gold_found@10": 0.096774,
+    "all_gold_found@25": 0.16129,
+    "all_gold_found@50": 0.225806,
+    "all_gold_found@100": 0.354839,
+    "all_gold_found@200": 0.387097
+  },
+  "outputs": {
+    "method_dir": "output/QA_Agent/MMRAG/hybrid_cpu/mmrag_hybrid_cpu_hard_rrf_m0.3_s0.4_d0.3_soft",
+    "summary": "output/QA_Agent/MMRAG/hybrid_cpu/mmrag_hybrid_cpu_hard_rrf_m0.3_s0.4_d0.3_soft/retrieval_recall_summary.json",
+    "details": "output/QA_Agent/MMRAG/hybrid_cpu/mmrag_hybrid_cpu_hard_rrf_m0.3_s0.4_d0.3_soft/retrieval_recall_details.json",
+    "answers": "output/QA_Agent/MMRAG/hybrid_cpu/mmrag_hybrid_cpu_hard_rrf_m0.3_s0.4_d0.3_soft/mmrag_answers.jsonl"
+  }
+}

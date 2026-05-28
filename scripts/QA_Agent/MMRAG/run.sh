@@ -3,6 +3,10 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../common_eval.sh"
 
+# Ensure project root is on PYTHONPATH so 'import memqa' works when running from scripts/
+# SCRIPT_DIR is scripts/QA_Agent/MMRAG, so ../../.. points to the repo root.
+export PYTHONPATH="${PYTHONPATH}:${SCRIPT_DIR}/../../.."
+
 TOP_K="${TOP_K:-10}"
 RETRIEVAL_MAX_K="${RETRIEVAL_MAX_K:-200}"
 VLLM_ENDPOINT="${VLLM_ENDPOINT:-http://127.0.0.1:8000/v1/chat/completions}"
