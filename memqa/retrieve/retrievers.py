@@ -519,3 +519,145 @@ class ClipRetriever(BaseRetriever):
         text_embedding = self._encode_texts([query])
         combined = torch.cat([text_embedding, text_embedding], dim=1)
         return F.normalize(combined, p=2, dim=1)
+
+
+class VisionRetriever(BaseRetriever):
+    """Pure cross-modal retriever: text queries ↔ image embeddings.
+
+    Uses a CLIP-family model (CLIP, SigLIP, EVA-CLIP, etc.) to encode:
+    - **Items**: images only (via the vision encoder).  Email items and media
+      items without a valid image path receive a zero vector, so they can
+      never be retrieved through this channel.
+    - **Queries**: text (via the text encoder in the same embedding space).
+
+    This gives a clean "visual relevance" signal that complements the
+    text-only dense channel.  Intended as the 4th channel inside
+    ``HybridRetriever`` (metadata / BM25 / text-dense / **VL-dense**).
+
+    Supported model families (auto-detected from ``model_name``):
+    - ``openai/clip-*``     → ``CLIPModel`` / ``CLIPProcessor``
+    - ``google/siglip-*``   → ``SiglipModel`` / ``AutoProcessor``
+    - Anything else         → ``CLIPModel`` / ``CLIPProcessor`` (fallback)
+    """
+
+    def __init__(
+        self,
+        model_name: str,
+        cache_dir: Path,
+        batch_size: int = 16,
+        device: Optional[str] = None,
+    ) -> None:
+        super().__init__(cache_dir, batch_size, device)
+        self._is_siglip = "siglip" in model_name.lower()
+
+        if self._is_siglip:
+            from transformers import SiglipModel, AutoProcessor
+            self.model = SiglipModel.from_pretrained(model_name)
+            self.processor = AutoProcessor.from_pretrained(model_name)
+        else:
+            self.model = CLIPModel.from_pretrained(model_name)
+            self.processor = CLIPProcessor.from_pretrained(model_name)
+
+        self.model.to(self.device)
+        self.model.eval()
+
+        # Cache dir for extracted video frames
+        self.frames_dir = cache_dir / "vl_frames"
+        self.frames_dir.mkdir(parents=True, exist_ok=True)
+        self._emb_dim: Optional[int] = None
+
+    # ── helpers ──────────────────────────────────────────────────
+
+    def _get_emb_dim(self) -> int:
+        """Lazily detect the image embedding dimension."""
+        if self._emb_dim is None:
+            # Use the model's config to get projection dim
+            config = self.model.config
+            if hasattr(config, "projection_dim"):
+                self._emb_dim = config.projection_dim
+            elif hasattr(config, "text_config") and hasattr(config.text_config, "hidden_size"):
+                self._emb_dim = config.text_config.hidden_size
+            else:
+                # Fallback: run a dummy forward pass
+                dummy_img = Image.new("RGB", (224, 224))
+                inputs = self.processor(images=[dummy_img], return_tensors="pt")
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                with torch.no_grad():
+                    feats = self.model.get_image_features(**inputs)
+                self._emb_dim = feats.shape[-1]
+        return self._emb_dim
+
+    def _load_image(self, path: Path) -> Image.Image:
+        with Image.open(path) as img:
+            return img.convert("RGB")
+
+    def _resolve_image_path(self, item: RetrievalItem) -> Optional[Path]:
+        """Get the image path for a retrieval item (extract first frame for video)."""
+        if item.modality == "image" and item.image_path and item.image_path.exists():
+            return item.image_path
+        if item.modality == "video" and item.video_path:
+            return extract_first_frame(item.video_path, self.frames_dir)
+        return None  # email items → no image → zero vector
+
+    def _encode_images_batch(
+        self, image_paths: List[Optional[Path]]
+    ) -> torch.Tensor:
+        """Encode a list of image paths; None → zero vector."""
+        emb_dim = self._get_emb_dim()
+        result = torch.zeros(len(image_paths), emb_dim, device=self.device)
+
+        # Collect valid items with their indices
+        valid: List[Tuple[int, Path]] = [
+            (i, p) for i, p in enumerate(image_paths) if p is not None
+        ]
+        if not valid:
+            return result
+
+        total = math.ceil(len(valid) / self.batch_size)
+        for chunk in tqdm(
+            batched(valid, self.batch_size),
+            total=total,
+            desc="Encoding VL images",
+        ):
+            indices = [c[0] for c in chunk]
+            images = []
+            for _, p in chunk:
+                try:
+                    images.append(self._load_image(p))
+                except Exception:
+                    images.append(Image.new("RGB", (224, 224)))  # fallback
+
+            inputs = self.processor(images=images, return_tensors="pt")
+            pixel_values = inputs["pixel_values"].to(self.device)
+            with torch.no_grad():
+                out = self.model.get_image_features(pixel_values=pixel_values)
+                feats = out.pooler_output if hasattr(out, "pooler_output") else out
+            feats = F.normalize(feats.float(), p=2, dim=1)
+
+            for out_idx, item_idx in enumerate(indices):
+                result[item_idx] = feats[out_idx]
+
+        return result
+
+    # ── BaseRetriever interface ──────────────────────────────────
+
+    def encode_items(self, items: List[RetrievalItem]) -> torch.Tensor:
+        """Encode items using ONLY image features (pure visual channel)."""
+        image_paths = [self._resolve_image_path(item) for item in items]
+        return self._encode_images_batch(image_paths)
+
+    def encode_query(self, query: str) -> torch.Tensor:
+        """Encode a text query in the VL model's text space."""
+        if self._is_siglip:
+            inputs = self.processor(text=[query], return_tensors="pt", padding=True)
+        else:
+            inputs = self.processor(
+                text=[query], return_tensors="pt", padding=True, truncation=True
+            )
+        # Only pass text-related inputs
+        text_keys = {"input_ids", "attention_mask", "token_type_ids"}
+        text_inputs = {k: v.to(self.device) for k, v in inputs.items() if k in text_keys}
+        with torch.no_grad():
+            out = self.model.get_text_features(**text_inputs)
+            feats = out.pooler_output if hasattr(out, "pooler_output") else out
+        return F.normalize(feats.float(), p=2, dim=1)

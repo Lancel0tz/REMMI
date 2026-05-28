@@ -49,6 +49,7 @@ from memqa.retrieve.retrievers import (
     TextRetriever,
     VistaRetriever,
 )
+from memqa.extensions.hybrid import HybridRetriever, HybridScoringConfig
 
 VL_RETRIEVERS = {"qwen3_vl_embedding", "vista", "clip"}
 
@@ -132,6 +133,7 @@ def parse_args() -> argparse.Namespace:
             "clip",
             "text",
             "sentence_transformer",
+            "hybrid",
         ],
         default=MMRAG_CONFIG["retriever"],
     )
@@ -162,6 +164,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--clip-model", default=MMRAG_CONFIG["clip_model"])
     parser.add_argument("--vista-model-name", default=MMRAG_CONFIG["vista_model_name"])
     parser.add_argument("--vista-weights", default=MMRAG_CONFIG["vista_weights"])
+
+    parser.add_argument(
+        "--hybrid-dense-retriever",
+        choices=["sentence_transformer", "text"],
+        default="sentence_transformer",
+        help="Dense sub-retriever for hybrid mode",
+    )
+    parser.add_argument(
+        "--hybrid-fusion",
+        choices=["rrf", "weighted_sum"],
+        default="rrf",
+        help="Score fusion strategy for hybrid retriever",
+    )
+    parser.add_argument("--hybrid-rrf-k", type=int, default=60)
+    parser.add_argument("--hybrid-weight-metadata", type=float, default=0.3)
+    parser.add_argument("--hybrid-weight-sparse", type=float, default=0.4)
+    parser.add_argument("--hybrid-weight-dense", type=float, default=0.3)
+    parser.add_argument(
+        "--hybrid-filter-mode",
+        choices=["soft", "hard"],
+        default="soft",
+        help="Metadata filter mode: soft (boost) or hard (exclude)",
+    )
 
     parser.add_argument(
         "--insert-raw-images",
@@ -295,7 +320,7 @@ def build_cache_config(
     def safe_mtime(path: str) -> Optional[float]:
         return os.path.getmtime(path) if path and os.path.exists(path) else None
 
-    return {
+    config: Dict[str, Any] = {
         "retriever": retriever_name,
         "media_source": args.media_source,
         "text_embedding_model": args.text_embedding_model,
@@ -314,6 +339,15 @@ def build_cache_config(
         "video_batch_mtime": safe_mtime(args.video_batch_results),
         "email_mtime": safe_mtime(args.email_file),
     }
+    if retriever_name == "hybrid":
+        config["hybrid_fusion"] = args.hybrid_fusion
+        config["hybrid_rrf_k"] = args.hybrid_rrf_k
+        config["hybrid_weight_metadata"] = args.hybrid_weight_metadata
+        config["hybrid_weight_sparse"] = args.hybrid_weight_sparse
+        config["hybrid_weight_dense"] = args.hybrid_weight_dense
+        config["hybrid_filter_mode"] = args.hybrid_filter_mode
+        config["hybrid_dense_retriever"] = args.hybrid_dense_retriever
+    return config
 
 
 def compute_recall(gt_ids: List[str], retrieved_ids: List[str]) -> Dict[str, float]:
@@ -566,6 +600,35 @@ def main() -> int:
                 model_name=args.clip_model,
                 cache_dir=cache_dir,
                 batch_size=args.retriever_batch_size,
+            )
+        elif args.retriever == "hybrid":
+            if args.hybrid_dense_retriever == "sentence_transformer":
+                dense_sub = SentenceTransformerRetriever(
+                    model_name=args.text_embedding_model,
+                    cache_dir=cache_dir,
+                    batch_size=args.retriever_batch_size,
+                )
+            else:
+                dense_sub = TextRetriever(
+                    model_name=args.text_embedding_model,
+                    cache_dir=cache_dir,
+                    batch_size=args.retriever_batch_size,
+                )
+            dense_sub.build_index(
+                retrieval_items, cache_config, force_rebuild=args.force_rebuild
+            )
+            scoring = HybridScoringConfig(
+                fusion=args.hybrid_fusion,
+                rrf_k=args.hybrid_rrf_k,
+                weight_metadata=args.hybrid_weight_metadata,
+                weight_sparse=args.hybrid_weight_sparse,
+                weight_dense=args.hybrid_weight_dense,
+                filter_mode=args.hybrid_filter_mode,
+            )
+            retriever = HybridRetriever(
+                cache_dir=cache_dir,
+                dense_retriever=dense_sub,
+                scoring=scoring,
             )
         elif args.retriever == "sentence_transformer":
             retriever = SentenceTransformerRetriever(
