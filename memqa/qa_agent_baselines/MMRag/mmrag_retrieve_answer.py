@@ -51,7 +51,7 @@ from memqa.retrieve.retrievers import (
 )
 from memqa.extensions.hybrid import HybridRetriever, HybridScoringConfig
 
-VL_RETRIEVERS = {"qwen3_vl_embedding", "vista", "clip"}
+VL_RETRIEVERS = {"qwen3_vl_embedding", "qwen3_vl_dual_embedding", "vista", "clip"}
 
 
 def is_vl_retriever(retriever_name: str) -> bool:
@@ -129,6 +129,7 @@ def parse_args() -> argparse.Namespace:
         "--retriever",
         choices=[
             "qwen3_vl_embedding",
+            "qwen3_vl_dual_embedding",
             "vista",
             "clip",
             "text",
@@ -580,6 +581,16 @@ def main() -> int:
 
         if args.retriever == "qwen3_vl_embedding":
             retriever = Qwen3VLRetriever(
+                model_name=args.vl_embedding_model,
+                cache_dir=cache_dir,
+                batch_size=args.retriever_batch_size,
+                num_frames=args.num_frames,
+                max_frames=args.num_frames,
+            )
+        elif args.retriever == "qwen3_vl_dual_embedding":
+            from memqa.retrieve.retrievers import Qwen3VLDualRetriever
+
+            retriever = Qwen3VLDualRetriever(
                 model_name=args.vl_embedding_model,
                 cache_dir=cache_dir,
                 batch_size=args.retriever_batch_size,
