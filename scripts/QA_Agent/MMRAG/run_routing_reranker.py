@@ -129,6 +129,9 @@ def parse_args() -> argparse.Namespace:
                    help="Hard-set optimised routing: dense-heavy weights, "
                         "BM25 cap=0.35, dense floor=0.50, NO reranking. "
                         "Designed for media-heavy multi-evidence queries.")
+    p.add_argument("--fixed-hybrid", action="store_true",
+                   help="Use fixed hybrid weights (0.1/0.2/0.7) instead of "
+                        "adaptive routing. For ablation: 'Hybrid + Reranker'.")
     p.add_argument("--force-rebuild", action="store_true",
                    help="Force rebuild the retrieval index")
     return p.parse_args()
@@ -339,7 +342,20 @@ def run_experiment(
         # ── Adaptive fusion (no reranker) ──
         t0 = time.perf_counter()
         signals = analyze_query(question)
-        aw = adaptive_weights_hard(signals) if args.hard_mode else adaptive_weights(signals)
+        if args.fixed_hybrid:
+            # Ablation: fixed hybrid weights, no adaptive routing
+            aw = AdaptiveWeights(
+                weight_metadata=0.1,
+                weight_sparse=0.2,
+                weight_dense=0.7,
+                weight_vl=0.0,
+                filter_mode="soft",
+                strategy_name="fixed_hybrid",
+            )
+        elif args.hard_mode:
+            aw = adaptive_weights_hard(signals)
+        else:
+            aw = adaptive_weights(signals)
 
         # ── Inject VL weight if VL channel is active ──
         if args.vl_embedding_model and args.vl_weight > 0:
@@ -707,6 +723,9 @@ def main() -> int:
     print(f"  Hard mode:      {args.hard_mode}")
     if args.hard_mode:
         print(f"    ↳ dense-heavy weights, BM25 cap, NO reranking")
+    print(f"  Fixed hybrid:   {args.fixed_hybrid}")
+    if args.fixed_hybrid:
+        print(f"    ↳ weights=(0.1, 0.2, 0.7), no adaptive routing")
     print()
 
     # ── Load data ──
@@ -735,7 +754,10 @@ def main() -> int:
     if args.output_dir:
         out_dir = Path(args.output_dir)
     else:
-        tag = "reranker" if not args.no_reranker else "adaptive_only"
+        if args.fixed_hybrid:
+            tag = "hybrid_reranker" if not args.no_reranker else "hybrid_only"
+        else:
+            tag = "reranker" if not args.no_reranker else "adaptive_only"
         if args.conditional:
             tag += "_conditional"
         if args.hard_mode:
