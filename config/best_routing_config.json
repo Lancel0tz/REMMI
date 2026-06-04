@@ -1,0 +1,32 @@
+{
+  "description": "Best configuration from Bayesian optimization (Trial 29, Standard Set)",
+  "optimization": {
+    "trial_id": 29,
+    "dataset": "standard",
+    "baseline_r10": 0.732,
+    "optimized_r10": 0.7750293799652141,
+    "improvement": "+4.30% (+5.88% relative)",
+    "trials_total": 50,
+    "timestamp": "2026-05-31 21:28:05"
+  },
+  "hybrid_scoring_config": {
+    "filter_mode": "soft",
+    "weight_metadata": 0.19,
+    "weight_sparse": 0.39,
+    "weight_dense": 0.56,
+    "weight_vl": 0.05,
+    "rrf_k": 60,
+    "fusion": "rrf"
+  },
+  "signal_thresholds": {
+    "meta_score_threshold": 0.5,
+    "keyword_score_threshold": 0.35,
+    "semantic_score_threshold": 0.4
+  },
+  "notes": {
+    "dense_dominance": "Dense semantic embedding is the primary channel (56%)",
+    "sparse_role": "BM25 provides complementary keyword matching (39%)",
+    "metadata_role": "Date/location filtering provides fine-tuning (19%)",
+    "vl_status": "Vision-Language disabled - CLIP model not suitable for this task"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "description": "Best configuration from Bayesian optimization (Trial 22, Hard Set)",
+  "optimization": {
+    "trial_id": 22,
+    "dataset": "hard",
+    "baseline_r10": "unknown",
+    "optimized_r10": 0.3845192915876028,
+    "improvement": "Hard set specific optimization",
+    "trials_total": 30,
+    "timestamp": "2026-06-02 06:03:33"
+  },
+  "hybrid_scoring_config": {
+    "filter_mode": "soft",
+    "weight_metadata": 0.11,
+    "weight_sparse": 0.28,
+    "weight_dense": 0.72,
+    "weight_vl": 0.12,
+    "rrf_k": 60,
+    "fusion": "rrf"
+  },
+  "signal_thresholds": {
+    "meta_score_threshold": 0.6,
+    "keyword_score_threshold": 0.4,
+    "semantic_score_threshold": 0.4
+  },
+  "notes": {
+    "dense_dominance": "Dense semantic embedding is the primary channel (72%) - higher than standard set",
+    "sparse_role": "BM25 provides complementary keyword matching (28%) - lower than standard set",
+    "metadata_role": "Date/location filtering provides fine-tuning (11%) - lower than standard set",
+    "vl_status": "Vision-Language enabled (12%) - different from standard set",
+    "difference": "Hard set requires more reliance on dense embeddings and less on metadata/sparse signals"
+  }
+}
