@@ -76,12 +76,31 @@ class TextReranker(BaseReranker):
             instruction
             or "Given a query and a document, judge whether the document answers the query."
         )
+        # Qwen3-Reranker 是在官方 chat-template 上训练的，必须用官方格式打分，
+        # 否则 yes/no logits 严重失真（实测 R@10 几乎不动）。
+        self._is_qwen3_reranker = "qwen3-reranker" in model_name.lower()
         self._mode = self._detect_mode(model_name)
         if self._mode == "causal_lm":
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name, trust_remote_code=True
             ).to(self.device)
             self._yes_id, self._no_id = self._resolve_yes_no_token_ids()
+            if self._is_qwen3_reranker:
+                self._qwen3_prefix = (
+                    "<|im_start|>system\nJudge whether the Document meets the "
+                    "requirements based on the Query and the Instruct provided. Note "
+                    'that the answer can only be "yes" or "no".<|im_end|>\n'
+                    "<|im_start|>user\n"
+                )
+                self._qwen3_suffix = (
+                    "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+                )
+                self._qwen3_prefix_ids = self.tokenizer.encode(
+                    self._qwen3_prefix, add_special_tokens=False
+                )
+                self._qwen3_suffix_ids = self.tokenizer.encode(
+                    self._qwen3_suffix, add_special_tokens=False
+                )
         else:
             self.model = AutoModelForSequenceClassification.from_pretrained(
                 model_name, trust_remote_code=True
@@ -103,6 +122,13 @@ class TextReranker(BaseReranker):
         return "sequence_cls"
 
     def _resolve_yes_no_token_ids(self) -> tuple[int, int]:
+        if getattr(self, "_is_qwen3_reranker", False):
+            # 官方 Qwen3-Reranker 用裸 "yes"/"no" 单 token
+            yes_id = self.tokenizer.convert_tokens_to_ids("yes")
+            no_id = self.tokenizer.convert_tokens_to_ids("no")
+            unk = getattr(self.tokenizer, "unk_token_id", None)
+            if yes_id not in (None, unk) and no_id not in (None, unk):
+                return yes_id, no_id
         yes_ids = self.tokenizer.encode(" yes", add_special_tokens=False)
         no_ids = self.tokenizer.encode(" no", add_special_tokens=False)
         if not yes_ids or not no_ids:
@@ -120,6 +146,29 @@ class TextReranker(BaseReranker):
                 "Answer: "
             )
         return prompts
+
+    def _build_qwen3_inputs(self, queries: List[str], docs: List[str]):
+        """官方 Qwen3-Reranker 输入: prefix + 内容(按需截断) + suffix。
+
+        只截中间的文档内容, 保证结尾 suffix(判分位置)永远存在。
+        """
+        reserve = len(self._qwen3_prefix_ids) + len(self._qwen3_suffix_ids)
+        max_content = max(self.max_length - reserve, 16)
+        ids_list = []
+        for query, doc in zip(queries, docs):
+            content = (
+                f"<Instruct>: {self.instruction}\n<Query>: {query}\n"
+                f"<Document>: {doc}"
+            )
+            content_ids = self.tokenizer.encode(content, add_special_tokens=False)
+            if len(content_ids) > max_content:
+                content_ids = content_ids[:max_content]
+            ids_list.append(
+                self._qwen3_prefix_ids + content_ids + self._qwen3_suffix_ids
+            )
+        return self.tokenizer.pad(
+            {"input_ids": ids_list}, padding=True, return_tensors="pt"
+        )
 
     def _score_sequence_cls(self, inputs: Dict[str, torch.Tensor]) -> List[float]:
         with torch.no_grad():
@@ -168,7 +217,10 @@ class TextReranker(BaseReranker):
         for chunk in batched(candidates, self.batch_size):
             queries = [query for _ in chunk]
             docs = [item.text for item in chunk]
-            if self._mode == "causal_lm":
+            if self._is_qwen3_reranker:
+                # 官方格式 + 仅截文档、保 suffix
+                inputs = self._build_qwen3_inputs(queries, docs)
+            elif self._mode == "causal_lm":
                 prompts = self._build_causal_prompts(queries, docs)
                 inputs = self.tokenizer(
                     prompts,

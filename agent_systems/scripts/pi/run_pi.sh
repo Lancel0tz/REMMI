@@ -333,6 +333,17 @@ while IFS= read -r QID; do
       --bind "${WORKSPACE_DIR}" /workspace
       --ro-bind "${PI_PACKAGE_ROOT}" "${PI_PACKAGE_ROOT}"
     )
+    # node may live in a conda env (not /usr/bin); bind its prefix so the pi
+    # shebang (`#!/usr/bin/env node`) resolves inside the sandbox. PATH is
+    # inherited, so once the dir exists in-sandbox node is found.
+    NODE_BIN_REAL="$(readlink -f "$(command -v node 2>/dev/null)" 2>/dev/null || true)"
+    if [[ -n "${NODE_BIN_REAL}" ]]; then
+      NODE_PREFIX="$(dirname "$(dirname "${NODE_BIN_REAL}")")"
+      case "${NODE_PREFIX}" in
+        /usr|/bin|/|"") : ;;  # already covered by system binds
+        *) [[ -e "${NODE_PREFIX}" ]] && CMD+=(--ro-bind "${NODE_PREFIX}" "${NODE_PREFIX}") ;;
+      esac
+    fi
     for ext_abs in "${PI_EXTENSION_PATHS_ABS[@]}"; do
       CMD+=(--ro-bind "${ext_abs}" "${ext_abs}")
     done
