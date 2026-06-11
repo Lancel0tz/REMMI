@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH -J complete-qa-std
+#SBATCH -J complete-qa-hard
 #SBATCH -A MLMI-kz345-SL2-GPU
 #SBATCH -p ampere
 #SBATCH --gres=gpu:1
@@ -7,9 +7,9 @@
 #SBATCH -n 1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
-#SBATCH --time=12:00:00
-#SBATCH --output=logs/complete_qa_%j.out
-#SBATCH --error=logs/complete_qa_%j.err
+#SBATCH --time=04:00:00
+#SBATCH --output=logs/complete_qa_hard_%j.out
+#SBATCH --error=logs/complete_qa_hard_%j.err
 
 set -euo pipefail
 
@@ -55,9 +55,9 @@ export PATH=/usr/bin:/bin:${PATH}
 
 # ── Parameters ───────────────────────────────────────────────────────────────
 
-QA_FILE="${QA_FILE:-data/atm-bench/atm-bench.json}"
-CONFIG_FILE="${CONFIG_FILE:-config/best_routing_config.json}"
-OUTPUT_DIR="${OUTPUT_DIR:-output/answers_complete_qa_standard}"
+QA_FILE="${QA_FILE:-data/atm-bench/atm-bench-hard.json}"
+CONFIG_FILE="${CONFIG_FILE:-config/best_routing_config_hard.json}"
+OUTPUT_DIR="${OUTPUT_DIR:-output/answers_complete_qa_hard}"
 USE_RERANKER="${USE_RERANKER:-true}"
 RERANKER_MODEL="${RERANKER_MODEL:-BAAI/bge-reranker-base}"
 RETRIEVAL_TOP_K="${RETRIEVAL_TOP_K:-10}"
@@ -74,6 +74,7 @@ RERANK_TOP_K="${RERANK_TOP_K:-50}"
 EVIDENCE_TEXT_MAX_CHARS="${EVIDENCE_TEXT_MAX_CHARS:-0}"
 MAX_TOKENS="${MAX_TOKENS:-256}"
 FORCE_REBUILD="${FORCE_REBUILD:-false}"
+INSERT_RAW_IMAGES="${INSERT_RAW_IMAGES:-true}"
 
 # vLLM 配置
 VLLM_MODEL="${VLLM_MODEL:-Qwen/Qwen3-VL-8B-Instruct-FP8}"
@@ -85,7 +86,7 @@ VLLM_MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-32768}"
 # ── Header ───────────────────────────────────────────────────────────────────
 
 echo "================================================================================"
-echo "  COMPLETE QA PIPELINE (standard best config)"
+echo "  COMPLETE QA PIPELINE (hard best config)"
 echo "================================================================================"
 echo "  Job ID: ${SLURM_JOB_ID}"
 echo "  Node: $(hostname)"
@@ -103,6 +104,7 @@ echo "    VL Embedding: ${VL_EMBEDDING_MODEL}"
 echo "    Force Rebuild: ${FORCE_REBUILD}"
 echo "    Evidence Max Chars: ${EVIDENCE_TEXT_MAX_CHARS}"
 echo "    Max Tokens: ${MAX_TOKENS}"
+echo "    Insert Raw Images: ${INSERT_RAW_IMAGES}"
 echo ""
 echo "================================================================================"
 echo ""
@@ -194,6 +196,11 @@ if [[ "${FORCE_REBUILD}" == "true" || "${FORCE_REBUILD}" == "1" ]]; then
   FORCE_REBUILD_FLAG="--force-rebuild"
 fi
 
+RAW_IMAGE_FLAG=""
+if [[ "${INSERT_RAW_IMAGES}" == "true" || "${INSERT_RAW_IMAGES}" == "1" ]]; then
+  RAW_IMAGE_FLAG="--insert-raw-images"
+fi
+
 VL_ADAPTIVE_FLAG=""
 if [[ "${VL_ADAPTIVE}" == "true" || "${VL_ADAPTIVE}" == "1" ]]; then
   VL_ADAPTIVE_FLAG="--vl-adaptive --weight-vl-visual ${WEIGHT_VL_VISUAL} --weight-vl-base ${WEIGHT_VL_BASE}"
@@ -218,7 +225,8 @@ python scripts/eval_with_best_config_complete.py \
   --reranker-batch-size "${RERANKER_BATCH_SIZE}" \
   --reranker-max-length "${RERANKER_MAX_LENGTH}" \
   ${FORCE_REBUILD_FLAG} \
-  --max-workers 4 \
+  ${RAW_IMAGE_FLAG} \
+  --max-workers 2 \
   --num-frames 8 \
   --max-total-frames 32
 

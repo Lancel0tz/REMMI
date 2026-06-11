@@ -49,17 +49,19 @@ export PATH=/usr/bin:/bin:${PATH}
 # Dataset selection (standard or hard)
 DATASET_TYPE="${DATASET_TYPE:-standard}"
 
-# QA file
+# QA file and matching optimized routing config
 if [[ "${DATASET_TYPE}" == "hard" ]]; then
   QA_FILE="data/atm-bench/atm-bench-hard.json"
+  CONFIG_DEFAULT="config/best_routing_config_hard.json"
   OUTPUT_SUFFIX="hard"
 else
   QA_FILE="data/atm-bench/atm-bench.json"
+  CONFIG_DEFAULT="config/best_routing_config.json"
   OUTPUT_SUFFIX="standard"
 fi
 
 # Configuration
-CONFIG_FILE="${CONFIG_FILE:-config/best_routing_config.json}"
+CONFIG_FILE="${CONFIG_FILE:-${CONFIG_DEFAULT}}"
 RERANKER_MODEL="${RERANKER_MODEL:-BAAI/bge-reranker-base}"
 USE_RERANKER="${USE_RERANKER:-true}"
 

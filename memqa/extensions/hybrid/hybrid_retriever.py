@@ -266,6 +266,41 @@ def parse_query_constraints(
 
 
 # ---------------------------------------------------------------------------
+# Visual-query detection (for adaptive VL routing)
+# ---------------------------------------------------------------------------
+
+# 与 routing_retriever._VISUAL_QUERY_RE 同款：检测 query 是否提到
+# photos/images/videos 或常见视觉物体/场景，VL embedding 对这类 query 有帮助。
+# 在此处自包含复制一份，避免 hybrid_retriever ←→ routing_retriever 循环导入。
+_VISUAL_QUERY_RE = re.compile(
+    r"""
+      \bphoto(?:s|graph)?\b
+    | \bimage(?:s)?\b
+    | \bpicture(?:s)?\b
+    | \bvideo(?:s)?\b
+    | \bsnapshot(?:s)?\b
+    | \bscreenshot(?:s)?\b
+    | \bselfie(?:s)?\b
+    | \bsticker(?:s)?\b
+    | \bcollect(?:ing|ion)\b
+    | \bfind\s+all\b
+    | \bsheep\b | \bcat\b | \bdog\b | \bflower\b | \bbird\b
+    | \bbridge\b | \btower\b | \bcastle\b | \bmuseum\b
+    | \bsunset\b | \bsunrise\b | \bbeach\b | \bmountain\b
+    | \bfood\b | \bdish\b | \bdessert\b | \bcake\b
+    | \blandmark\b | \bmonument\b | \bstatue\b
+    | \blook(?:s|ed)?\s+like\b
+    | \bwhat\s+(?:animal|building|object|place|scene)\b
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+
+def _has_visual_hint(query: str) -> bool:
+    return bool(_VISUAL_QUERY_RE.search(query or ""))
+
+
+# ---------------------------------------------------------------------------
 # Hybrid scoring config
 # ---------------------------------------------------------------------------
 
@@ -279,7 +314,14 @@ class HybridScoringConfig:
     weight_metadata: float = 0.3
     weight_sparse: float = 0.4
     weight_dense: float = 0.3
-    weight_vl: float = 0.0  # vision-language channel (0 = disabled)
+    weight_vl: float = 0.0  # vision-language channel (0 = disabled / non-visual queries)
+    # VL routing: when `vl_adaptive` is True, the VL weight becomes per-query.
+    # Queries with a visual hint (photos/images/videos/visual objects) use
+    # `weight_vl_visual`; all other queries use `weight_vl`. The extra VL budget
+    # on visual queries is taken from the dense channel (a "tilt"), keeping
+    # metadata/sparse untouched. m/s/d 仍是你优化好的固定值。
+    vl_adaptive: bool = False
+    weight_vl_visual: float = 0.0  # VL weight for visual-hint queries (when vl_adaptive)
     # When `filter_mode = "hard"`, items failing date/location constraints are
     # dropped before fusion. When "soft" (default), the metadata channel only
     # contributes a positive boost.
@@ -550,7 +592,20 @@ class HybridRetriever:
         meta_scores, meta_mask = self._metadata_scores(constraints)
         bm25_scores = self._bm25_scores(query)
         dense_scores = self._dense_scores(query)
-        vl_scores = self._vl_scores(query) if self.scoring.weight_vl > 0 else None
+
+        # Per-query VL/dense weights (adaptive VL routing). When vl_adaptive is
+        # off, this collapses to the fixed weight_vl / weight_dense behaviour.
+        w_vl = self.scoring.weight_vl
+        w_dense = self.scoring.weight_dense
+        if self.scoring.vl_adaptive and self.vl is not None:
+            if _has_visual_hint(query):
+                w_vl = self.scoring.weight_vl_visual
+                # Tilt: fund the extra VL budget from dense (m/s untouched).
+                w_dense = max(0.0, self.scoring.weight_dense - (w_vl - self.scoring.weight_vl))
+            else:
+                w_vl = self.scoring.weight_vl  # base (e.g. 0 = VL off for non-visual)
+
+        vl_scores = self._vl_scores(query) if (w_vl > 0 and self.vl is not None) else None
 
         if self.scoring.filter_mode == "hard":
             arrays = [meta_scores, bm25_scores, dense_scores]
@@ -579,18 +634,18 @@ class HybridRetriever:
             fused = (
                 self.scoring.weight_metadata / (k + ranks_meta)
                 + self.scoring.weight_sparse / (k + ranks_sparse)
-                + self.scoring.weight_dense / (k + ranks_dense)
+                + w_dense / (k + ranks_dense)
             )
-            if self.scoring.weight_vl > 0:
-                fused += self.scoring.weight_vl / (k + ranks_vl)
+            if w_vl > 0:
+                fused += w_vl / (k + ranks_vl)
         elif self.scoring.fusion == "weighted_sum":
             fused = (
                 self.scoring.weight_metadata * _minmax(meta_scores)
                 + self.scoring.weight_sparse * _minmax(bm25_scores)
-                + self.scoring.weight_dense * _minmax(dense_scores)
+                + w_dense * _minmax(dense_scores)
             )
-            if vl_scores is not None and self.scoring.weight_vl > 0:
-                fused += self.scoring.weight_vl * _minmax(vl_scores)
+            if vl_scores is not None and w_vl > 0:
+                fused += w_vl * _minmax(vl_scores)
         else:
             raise ValueError(f"Unknown fusion strategy: {self.scoring.fusion}")
 

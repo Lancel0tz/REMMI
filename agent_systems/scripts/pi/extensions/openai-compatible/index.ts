@@ -33,13 +33,13 @@ export default function (pi: ExtensionAPI) {
     name: "OpenAI-compatible API server",
     baseUrl: BASE_URL,
     apiKey: "OPENAI_COMPATIBLE_API_KEY",
-    api: "openai",
+    api: "openai-completions",
     authHeader: true,
     models: [
       {
         id: MODEL_ID,
         name: MODEL_ID,
-        reasoning: true,
+        reasoning: false,
         input: ["text"],
         cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         contextWindow: CONTEXT_WINDOW,
