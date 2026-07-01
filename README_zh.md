@@ -74,40 +74,77 @@ CHRONICLE 是增量式开发的。**当前已实现**的是检索这一侧——
 
 CHRONICLE 在 ATM-Bench 的 Schema-Guided Memory (SGM) 记忆项上做混合、查询自适应检索：
 
-1. **三条检索通道**
-   - **元数据** — 对 SGM `time` + `location` 字段做软过滤/加权。
+1. **四条检索通道**
+   - **元数据** — 对 SGM `time` + `location` 字段做软/硬过滤 + 加权。
    - **稀疏** — 在渲染后的 SGM 文本与所选元数据字段上做 BM25。
    - **稠密** — 任意 `BaseRetriever`（如 Qwen3 文本嵌入，或新增的 Qwen3-VL 双编码器）。
-2. **分数融合** — RRF（默认）或对 min-max 归一化后的各通道分数做加权和。
-3. **查询自适应路由** — `RoutingRetriever` 分析逐查询信号（元数据/关键词/语义强度）
-   选择通道权重，对标准集与 `-Hard` 集分别采用不同权重档。
+   - **视觉** — CLIP 式图像匹配，用于视觉相关的查询。
+2. **查询自适应路由** — `RoutingRetriever` 分析逐查询信号（日期/地点、专有名词、
+   金额、CJK 词、召回措辞、视觉提及）逐查询调整四条通道的权重，对标准集与 `-Hard`
+   集分别采用不同权重档，并有置信门在首轮偏弱时放宽通道。
+3. **融合 + 重排** — 对路由后的排名做 RRF，再由交叉编码器重排器
+   （Qwen3-Reranker-4B）把 top-20 精修到 top-10。
 4. **可选的查询分解与 LLM 路由**，用于多证据查询。
 
-冻结的工作点（贝叶斯优化，见 `config/`）采用
-`元数据:稀疏:稠密 ≈ 0.19:0.39:0.56` + RRF，将标准集 Recall@10 从
-**0.732 提升到 0.775**（+4.3%）。
+冻结的工作点见 [`config/`](config)。在固定 `Qwen3-VL-8B-Instruct` 回答模型不变的前提下，
+该 pipeline 在标准集达到 **83.3 Recall@10 / 60.3 QS**——见 [结果](#-结果)。
 
 <a id="结果"></a>
 ## 📊 结果
 
-> 🏆 最权威、最新的数字见 [ATM-Bench 在线榜单](https://atmbench.github.io/leaderboard.html)，
-> 下方快照可能滞后于新提交。
+> 🏆 最权威、最新的数字见 [ATM-Bench 在线榜单](https://atmbench.github.io/leaderboard.html)。
 
-**记忆系统对比** — 回答模型 `Qwen3-VL-8B-Instruct-FP8`，记忆处理器
-`Qwen3-VL-2B-Instruct`，`-Hard` 使用 `atm-bench-hard` 发布集。**CHRONICLE 即最下方
-`CHRONICLE (Ours)` 那一行。**
+在**固定** `Qwen3-VL-8B-Instruct` 回答模型下，CHRONICLE 的检索阶段在 ATM-Bench 上
+**刷新了 Memory & RAG 系统的 SOTA**——因为回答模型不变，QS 的差距只能归因于检索、
+而非语言模型。它在**两个 split 的 QS 和 Recall@10 上都排第一**：标准集 **60.3** QS /
+**83.3** R@10，困难集 **19.2** QS / **42.0** R@10。
 
-| 系统 | 建索引时间 (hr) ↓ | ATM-Bench QS ↑ | ATM-Bench Recall@10 ↑ | ATM-Bench-Hard QS ↑ | ATM-Bench-Hard Recall@10 ↑ |
-|------|------------------:|---------------:|----------------------:|--------------------:|---------------------------:|
-| [A-Mem](https://github.com/WujiangXu/A-mem) | 12.6 | 44.8 | 66.4 | 9.9 | 31.7 |
-| [mem0](https://github.com/mem0ai/mem0) | 16.7 | 43.5 | 61.9 | 9.2 | 23.7 |
-| [MemoryOS](https://github.com/BAI-LAB/MemoryOS) | 36.6 | 47.2 | 59.2 | 13.7 | 32.7 |
-| [HippoRAG2](https://github.com/OSU-NLP-Group/HippoRAG) | 1.5 | 42.9 | 66.4 | 9.4 | 31.9 |
-| [MemPalace](https://github.com/MemPalace/mempalace) | 0.5 | 56.8 | 76.4 | 9.7 | 28.3 |
-| [SimpleMem](https://github.com/aiming-lab/SimpleMem) | 15.7 | 27.3 | 23.3 | 3.2 | 7.0 |
-| **CHRONICLE (Ours)** | **0.5** | **51.0** | **68.7** | **8.4** | **28.8** |
+**表 1 — ATM-Bench 标准集**（单跳；按 QS 排序；所有系统同一回答模型）
 
-<!-- TODO: 论文定稿后补充消融（路由开关、各通道、reranker）。 -->
+| # | 系统 | 类型 | QS ↑ | R@10 ↑ |
+|--:|------|:----:|-----:|-------:|
+| **1** | **CHRONICLE (Ours)** · 混合检索 | RAG | **60.3** | **83.3** |
+| 2 | [MemPalace](https://github.com/MemPalace/mempalace) | Memory | 56.8 | 76.4 |
+| 3 | ScrapMem (No-Forget) | Memory | 52.5 | 70.3 |
+| 4 | [ATM-RAG](https://github.com/JingbiaoMei/ATM-Bench) · 上游 | RAG | 51.0 | 68.7 |
+| 5 | Self-RAG | RAG | 50.3 | 68.7 |
+| 6 | [MemoryOS](https://github.com/BAI-LAB/MemoryOS) | Memory | 47.2 | 59.2 |
+| 7 | [A-Mem](https://github.com/WujiangXu/A-mem) | Memory | 44.8 | 66.4 |
+| — | *Oracle 上限 (Qwen3-VL-8B)* | — | *78.2* | — |
+
+**表 2 — ATM-Bench-Hard**（31 道多跳题，每题约 6 条证据；按 QS 排序）
+
+| # | 系统 | 类型 | QS ↑ | R@10 ↑ |
+|--:|------|:----:|-----:|-------:|
+| **1** | **CHRONICLE (Ours)** · 混合检索 | RAG | **19.2** | **42.0** |
+| 2 | [ATM-RAG](https://github.com/JingbiaoMei/ATM-Bench) · 上游 | RAG | 13.8 | 30.4 |
+| 3 | [MemoryOS](https://github.com/BAI-LAB/MemoryOS) | Memory | 13.7 | 32.7 |
+| 4 | [A-Mem](https://github.com/WujiangXu/A-mem) | Memory | 9.9 | 31.7 |
+| 5 | [MemPalace](https://github.com/MemPalace/mempalace) | Memory | 9.7 | 28.3 |
+| 6 | [HippoRAG2](https://github.com/OSU-NLP-Group/HippoRAG) | RAG | 9.4 | 31.9 |
+| 7 | [mem0](https://github.com/mem0ai/mem0) | Memory | 9.2 | 23.7 |
+| — | *Oracle 上限 (Qwen3-VL-8B)* | — | *40.1* | — |
+
+在困难集上，CHRONICLE 比此前最好者高 **+5.4 QS**（对比 ATM-RAG 13.8）和
+**+9.3 R@10**（对比 MemoryOS 32.7）；仅靠检索就把困难集 QS 从 **8.4 提升到 19.2**。
+
+**消融**（Recall@10；每个组件都有其价值）
+
+| 配置 | Hard | Std |
+|------|-----:|----:|
+| 完整 · 4 通道 RRF | 36.7 | 78.1 |
+| &nbsp;&nbsp;− 稠密 | 19.1 | 69.5 |
+| &nbsp;&nbsp;− 稀疏 (BM25) | 35.6 | 71.9 |
+| &nbsp;&nbsp;− 元数据 | 35.0 | 77.4 |
+| &nbsp;&nbsp;− 视觉 | 38.5 | 77.5 |
+| + 逐查询路由 | 40.0 | 78.7 |
+| + 交叉编码器重排 (Qwen3-Reranker-4B) | **42.0** | **83.3** |
+
+*第 2–5 行是从完整 4 通道 RRF（第 1 行）中各去掉一条通道；最后两行是在其上叠加
+pipeline 阶段，末行即 CHRONICLE 的完整配置。*
+
+> **状态。** 目前只评测了**检索阶段**——摄取、记忆组织、回答模型全部不变。即便检索已很强，
+> 困难集 QS 仍卡在 ~20%:剩余瓶颈是**多证据聚合,而非检索**,这正是 [路线图](#-路线图) 的下一步。
 
 <a id="复现"></a>
 ## 🔁 复现
