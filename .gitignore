@@ -1,5 +1,8 @@
-# Python
+# macOS
 .DS_Store
+**/.DS_Store
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -19,6 +22,9 @@ env/
 output/
 output
 data/
+
+# Private poster / course materials (not for public release)
+poster_kz345/
 
 *.zip
 api_keys

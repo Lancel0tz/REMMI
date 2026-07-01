@@ -9,7 +9,7 @@ These tests run on CPU in seconds. They use the synthetic corpus from
 
 Run with:
 
-    python -m unittest memqa.extensions.hybrid.test_hybrid_retriever -v
+    python -m unittest ltma.test_hybrid_retriever -v
 
 These are intended as developer smoke tests, not the full benchmark.
 """
@@ -21,12 +21,12 @@ from datetime import date
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from memqa.extensions.hybrid import (
+from ltma import (
     HybridRetriever,
     HybridScoringConfig,
     parse_query_constraints,
 )
-from memqa.extensions.hybrid.hybrid_retriever import build_synthetic_items
+from ltma.hybrid_retriever import build_synthetic_items
 
 
 class TestQueryConstraints(unittest.TestCase):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Setup script for ATMBench."""
+"""Setup script for LTMA."""
 
 from setuptools import find_packages, setup
 import os
@@ -10,7 +10,7 @@ def read_readme() -> str:
     if os.path.exists(readme_path):
         with open(readme_path, "r", encoding="utf-8") as f:
             return f.read()
-    return "ATMBench"
+    return "LTMA"
 
 
 def read_requirements():
@@ -26,12 +26,13 @@ def read_requirements():
 
 
 setup(
-    name="atmbench",
+    name="ltma",
     version="0.1.0",
-    description="ATMBench: long-term personalized referential memory QA benchmark and baselines",
+    description="LTMA: hybrid adaptive-routing retrieval for long-term personalized memory QA, built on ATM-Bench",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
-    author="Jingbiao Mei",
+    author="Kuanyan Zhu",
+    author_email="zkuanyan@gmail.com",
     packages=find_packages(where="."),
     package_dir={"": "."},
     python_requires=">=3.8",

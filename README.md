@@ -1,91 +1,97 @@
 <div align="center">
 
-# ATM-Bench: Long-Term Personalized Referential Memory QA
+# LTMA — Hybrid Adaptive-Routing Retrieval for Long-Term Personal Memory QA
 
-**The first benchmark for multimodal, multi-source personalized referential memory QA over long time horizons (~4 years), with evidence-grounded retrieval and answering.**
+**A hybrid, query-adaptive multimodal RAG method for long-term personalized referential memory QA, built on and evaluated with [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench).**
 
 [🇬🇧 English](README.md) • [🇨🇳 中文](README_zh.md)
 
-[![arXiv](https://img.shields.io/badge/arXiv-2603.01990-b31b1b.svg?logo=arxiv&logoColor=white)](https://arxiv.org/abs/2603.01990)
-[![Project Page](https://img.shields.io/badge/🌐_Project-atmbench.github.io-1f6feb.svg)](https://atmbench.github.io/)
+<!-- TODO: add your own paper / project-page badges once public
+[![arXiv](https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b.svg?logo=arxiv&logoColor=white)](https://arxiv.org/abs/XXXX.XXXXX)
+-->
+[![Benchmark: ATM-Bench](https://img.shields.io/badge/Benchmark-ATM--Bench-1f6feb.svg)](https://github.com/JingbiaoMei/ATM-Bench)
 [![Live Leaderboard](https://img.shields.io/badge/🏆_Leaderboard-Live-orange.svg)](https://atmbench.github.io/leaderboard.html)
 [![Hugging Face](https://img.shields.io/badge/🤗_HuggingFace-Dataset-FFD21E.svg)](https://huggingface.co/datasets/Jingbiao/ATM-Bench)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[🚀 Quick Start](#-quick-start) • [🤖 Agent Results](#-general-purpose-agent-results) • [🧠 Memory Systems](#-memory-system-baseline-results) • [📊 Oracle / NIAH](#-oracle-and-niah-results) • [🏆 Live Leaderboard](https://atmbench.github.io/leaderboard.html) • [📖 Citation](#-citation)
+[✨ What's New](#-whats-new-in-ltma) • [🧩 Method](#-method) • [📊 Results](#-results) • [🔁 Reproduce](#-reproduce) • [📁 Structure](#-repository-structure) • [📖 Citation](#-citation)
 
 </div>
 
-<video src="https://atmbench.github.io/static/videos/ATM-Bench-demo.mp4" controls width="100%"></video>
+> **LTMA** is incremental work on top of the **ATM-Bench** benchmark. It does not
+> re-release the benchmark; it contributes a retrieval method (reported as
+> **ATM-RAG** in the results below) and the code to reproduce it. The benchmark,
+> dataset, task definition, and the baselines LTMA compares against are the work
+> of the ATM-Bench authors — see [Attribution](#-attribution--upstream).
 
-> 📄 **Paper:** [According to Me: Long-Term Personalized Referential Memory QA](https://arxiv.org/abs/2603.01990)  
-> 🌐 **Project Page:** [https://atmbench.github.io/](https://atmbench.github.io/)  
-> 🏆 **Live Leaderboard:** [https://atmbench.github.io/leaderboard.html](https://atmbench.github.io/leaderboard.html)
+---
 
-## Table of Contents
+## 📋 Table of Contents
 
-- [🗓️ Timeline](#️-timeline)
-- [🤖 General-Purpose Agent Results](#-general-purpose-agent-results)
-- [🧠 Memory-System Baseline Results](#-memory-system-baseline-results)
-- [📊 Oracle and NIAH Results](#-oracle-and-niah-results)
-- [📋 Overview](#-overview)
-- [🚀 Quick Start](#-quick-start)
+- [✨ What's New in LTMA](#-whats-new-in-ltma)
+- [🧩 Method](#-method)
+- [📊 Results](#-results)
+- [🔁 Reproduce](#-reproduce)
 - [📁 Repository Structure](#-repository-structure)
-- [📚 Documentation](#-documentation)
+- [🙏 Attribution & Upstream](#-attribution--upstream)
 - [📖 Citation](#-citation)
-- [🔗 Links](#-links)
 - [📝 License](#-license)
 
-<a id="timeline"></a>
-## 🗓️ Timeline
+<a id="whats-new-in-ltma"></a>
+## ✨ What's New in LTMA
 
-- **2026-03-03:** arXiv paper release ([2603.01990](https://arxiv.org/abs/2603.01990))
-- **2026-03-04:** Initial codebase release, including baseline implementations for MMRAG, Oracle, NIAH, and four ported third-party baselines (A-Mem, HippoRAG2, mem0, MemoryOS).
-- **2026-03-12:** Initial General-Purpose Agent benchmark results release for Claude Code, Codex, and OpenCode.
-- **2026-03-12:** ATM-Bench data release on Hugging Face ([ATM-Bench](https://huggingface.co/datasets/Jingbiao/ATM-Bench)).
-- **2026-03-13:** Fixed Opencode Token Accounting and updated OpenClaw results.
-- **2026-05-15:** Released the MemPalace port and added memory-system comparison results.
-- **2026-05-27:** Released the SimpleMem port and added memory-system comparison results.
-- **2026-05-28:** Released the Pi Agent Benchmark results.
-- **2026-05-30:** Released the General-Purpose Agent benchmark harness (`agent_systems/`) — isolated, per-question runners for Claude Code, Codex, Pi, OpenCode, and OpenClaw.
+Everything below is added by LTMA on top of upstream ATM-Bench. The core method
+lives in a single top-level package, [`ltma/`](ltma/), so the contribution
+boundary is explicit.
 
-<a id="General-Purpose-Agent-results"></a>
-## 🤖 General-Purpose Agent Results
+| Contribution | Where | Notes |
+|--------------|-------|-------|
+| **Hybrid retriever** — metadata filtering + BM25 sparse + dense, fused via RRF or weighted-sum | [`ltma/hybrid_retriever.py`](ltma/hybrid_retriever.py) | Pluggable dense channel; CPU-testable without torch |
+| **Query-adaptive routing** — per-query signal analysis → adaptive channel weights (easy/hard variants) | [`ltma/routing_retriever.py`](ltma/routing_retriever.py) | `RoutingRetriever`, `adaptive_weights`, `adaptive_weights_hard` |
+| **LLM router** — LLM-driven route selection over retrieval channels | [`ltma/llm_router.py`](ltma/llm_router.py) | |
+| **Query decomposition** — splits multi-evidence queries into sub-queries | [`ltma/query_decomposer.py`](ltma/query_decomposer.py) | |
+| **Qwen3-VL dual-encoder retriever** for MMRAG dense retrieval | [`memqa/retrieve/retrievers.py`](memqa/retrieve/retrievers.py) | Added alongside upstream retrievers |
+| **Qwen3-Reranker fix** | [`memqa/retrieve/rerankers.py`](memqa/retrieve/rerankers.py) | |
+| **Frozen best configs** from Bayesian optimization | [`config/best_routing_config.json`](config/best_routing_config.json), [`config/best_routing_config_hard.json`](config/best_routing_config_hard.json) | The numbers below reproduce from these |
+| **SimpleMem baseline port** | [`memqa/qa_agent_baselines/SimpleMem/`](memqa/qa_agent_baselines/SimpleMem/) | Added to the memory-system comparison |
 
-> 🏆 **The most up-to-date numbers live on the [ATM-Bench Live Leaderboard](https://atmbench.github.io/leaderboard.html).** The static snapshot below may lag behind new submissions.
+The exploratory search/sweep code that *produced* the frozen configs (grid /
+Bayesian / meta-strategy optimizers, recall ablations, retriever comparisons)
+lives under [`experiments/`](experiments/README.md) and is **not** required to
+reproduce the headline numbers.
 
-Initial General-Purpose Agent results on ATM-Bench-Hard are summarized below. The QS score here uses `gpt-5-mini` as the primary judge. `Tokens/QS` shows the token cost per percentage point of QS, so lower is more efficient.
+<a id="method"></a>
+## 🧩 Method
 
-| Agent | Model | QS (Acc.) ↑ | Total Tokens ↓ | Tokens/QS ↓ |
-|-------|-------|------------:|---------------:|-------------:|
-| Claude Code | Claude Opus 4.6 | 33.80% | 4.93M | 0.146M |
-| Claude Code | Claude Opus 4.7 | 39.50% | 5.03M | 0.127M |
-| Claude Code | Claude Opus 4.7 (w/o SGM) | 23.10% | 16.95M | 0.734M |
-| Claude Code | Claude Opus 4.8 | 41.60% | 4.42M | 0.106M |
-| Codex | GPT-5.2 | 39.70% | 15.46M | 0.389M |
-| Codex | GPT-5.2 (w/o SGM) | 16.30% | 22.23M | 1.364M |
-| Codex | GPT-5.5 | 41.40% | 16.14M | 0.390M |
-| OpenCode | GLM-5 | 27.00% | 16.89M | 0.626M |
-| OpenCode | Qwen3.5-397B-A17B | 24.50% | 12.06M | 0.492M |
-| OpenCode | Kimi K2.5 | 30.30% | 8.46M | 0.279M |
-| OpenCode | Kimi K2.5 (w/o SGM) | 6.50% | 21.40M | 3.292M |
-| OpenCode | MiniMax M2.5 | 22.90% | 14.5M | 0.633M |
-| OpenCode | MiniMax M2.7 | 27.80% | 13.48M | 0.485M |
-| OpenClaw 🦞 | Kimi K2.5 | 25.40% | 9.63M | 0.379M |
-| Pi | GLM-5.1 | 38.80% | 8.17M | 0.211M |
-| Pi | Kimi K2.5 | 37.80% | 9.92M | 0.262M |
-| Pi | MiMo v2.5 | 36.10% | 18.23M | 0.505M |
+LTMA retrieves over ATM-Bench's Schema-Guided Memory (SGM) items with a hybrid,
+query-adaptive pipeline:
 
-* All coding agents use their default configuration, including the reasoning effort.
+1. **Three retrieval channels**
+   - **Metadata** — soft filtering / boosting over SGM `time` + `location` fields.
+   - **Sparse** — BM25 over the rendered SGM text and selected metadata fields.
+   - **Dense** — any `BaseRetriever` (e.g. Qwen3 text embeddings, or the added
+     Qwen3-VL dual encoder).
+2. **Score fusion** — Reciprocal Rank Fusion (default) or weighted-sum over
+   min-max-normalized per-channel scores.
+3. **Query-adaptive routing** — `RoutingRetriever` analyzes per-query signals
+   (metadata / keyword / semantic strength) and picks channel weights, with
+   separate profiles for the standard and `-Hard` splits.
+4. **Optional query decomposition and LLM routing** for multi-evidence queries.
 
-The coding agents still struggle on ATM-Bench-Hard, although they perform much better than various agentic memory baselines.
+The frozen operating point (from Bayesian optimization, `config/`) uses
+`metadata:sparse:dense ≈ 0.19:0.39:0.56` with RRF, lifting Recall@10 on the
+standard set from **0.732 → 0.775** (+4.3%).
 
-To reproduce these runs, see the General-Purpose Agent harness under [`agent_systems/`](agent_systems/README.md), which provides isolated, per-question runners for Claude Code, Codex, Pi, OpenCode, and OpenClaw.
+<a id="results"></a>
+## 📊 Results
 
-<a id="memory-system-baseline-results"></a>
-## 🧠 Memory-System Baseline Results
+> 🏆 The authoritative, up-to-date numbers live on the
+> [ATM-Bench Live Leaderboard](https://atmbench.github.io/leaderboard.html).
+> The snapshot below may lag behind new submissions.
 
-Memory-system baselines below use `Qwen3-VL-8B-Instruct-FP8` as the answerer, `Qwen3-VL-2B-Instruct` as the memory processor. ATM-Bench-Hard uses the `atm-bench-hard` release set, the results may differ from the original preprint.
+**Memory-system comparison** — answerer `Qwen3-VL-8B-Instruct-FP8`, memory
+processor `Qwen3-VL-2B-Instruct`, `-Hard` on the `atm-bench-hard` release set.
+**LTMA is the `ATM-RAG (Ours)` row.**
 
 | System | Index Time (hr) ↓ | ATM-Bench QS ↑ | ATM-Bench Recall@10 ↑ | ATM-Bench-Hard QS ↑ | ATM-Bench-Hard Recall@10 ↑ |
 |--------|------------------:|---------------:|----------------------:|--------------------:|---------------------------:|
@@ -95,274 +101,104 @@ Memory-system baselines below use `Qwen3-VL-8B-Instruct-FP8` as the answerer, `Q
 | [HippoRAG2](https://github.com/OSU-NLP-Group/HippoRAG) | 1.5 | 42.9 | 66.4 | 9.4 | 31.9 |
 | [MemPalace](https://github.com/MemPalace/mempalace) | 0.5 | 56.8 | 76.4 | 9.7 | 28.3 |
 | [SimpleMem](https://github.com/aiming-lab/SimpleMem) | 15.7 | 27.3 | 23.3 | 3.2 | 7.0 |
-| **ATM-RAG (Ours)** | 0.5 | 51.0 | 68.7 | 8.4 | 28.8 |
+| **ATM-RAG / LTMA (Ours)** | **0.5** | **51.0** | **68.7** | **8.4** | **28.8** |
 
-<a id="oracle-and-niah-results"></a>
-## 📊 Oracle and NIAH Results
+<!-- TODO: add ablations (routing on/off, per-channel, reranker) once finalized for the paper. -->
 
+<a id="reproduce"></a>
+## 🔁 Reproduce
 
-### Oracle on ATM-Bench-Hard
-
-QS is reported with `gpt-5-mini` as the primary judge.
-
-| Model | Setting | QS |
-|-------|---------|----|
-| GPT-5 | Raw | 72.12% |
-| Qwen3-VL-8B-Instruct | Raw | 40.14% |
-| Qwen3-VL-8B-Instruct | SGM | 27.98% |
-| Qwen3-VL-8B-Instruct | D | 21.69% |
-
-### NIAH on ATM-Bench-Hard
-
-For NIAH, we compare the `Qwen3-VL-8B-Instruct` SGM and Raw settings at different haystack sizes.
-
-| Model | Setting | QS | Avg. Context Tokens |
-|-------|---------|----|---------------------|
-| Qwen3-VL-8B-Instruct | Raw, Oracle | 40.14% | 5.7k |
-| Qwen3-VL-8B-Instruct | Raw, NIAH-25 | 25.43% | 15.9k |
-| Qwen3-VL-8B-Instruct | Raw, NIAH-50 | 24.87% | 29.0k |
-| Qwen3-VL-8B-Instruct | Raw, NIAH-100 | 10.90% | 56.0k |
-| Qwen3-VL-8B-Instruct | SGM, Oracle | 27.98% | 4.6k |
-| Qwen3-VL-8B-Instruct | SGM, NIAH-25 | 16.33% | 12.5k |
-| Qwen3-VL-8B-Instruct | SGM, NIAH-50 | 15.77% | 23.9k |
-| Qwen3-VL-8B-Instruct | SGM, NIAH-100 | 12.66% | 45.8k |
-
-
-<a id="overview"></a>
-## 📋 Overview
-
-Existing long-term memory benchmarks focus primarily on dialogue history, failing to capture realistic personalized references grounded in lived experience. ATM-Bench addresses this gap with:
-
-- 🖼️ **Multimodal and multi-source data:** Images, videos, emails
-- 📅 **Long-term horizon:** ~4 years of personal memory
-- 🎯 **Referential queries:** Resolving personalized references (e.g., "Show me the moments where Grace was trying to be sneaky...")
-- 🔍 **Evidence-grounded:** Human-annotated QA pairs with ground-truth memory evidence
-- 🧩 **Multi-evidence reasoning:** Queries requiring evidence from multiple sources
-- ⚡ **Conflicting evidence:** Handling contradictory information
-
-![ATM-Bench Overview](docs/images/ATM-Bench-Demo.png)
-
-<a id="memory-ingestion"></a>
-## Memory Ingestion
-
-**Memory Ingestion** is decomposed into:
-
-1. **Memory preprocessing** (how each memory item is represented)
-2. **Memory organization** (how items are structured/linked)
-
-<p align="center">
-  <img src="docs/images/ATM-Method.png" alt="ATM Method" width="50%" />
-</p>
-
-### Memory Preprocessing
-We compare two preprocessing representations:
-
-- **Descriptive Memory (DM):** each memory item is represented as one natural-language description.
-- **Schema-Guided Memory (SGM):** each memory item is represented with fixed text-based key-value fields under a schema.
-
-In SGM, schema fields are modality-aware. For example:
-
-- **Image/Video memory:** `time`, `location`, `entities`, `ocr`, `tags`
-- **Email memory:** `time`, `summary`, `body`
-
-DM and SGM contain the same underlying information but use different formats.
-
-In this codebase, DM is implemented as caption/description-style text, while SGM is implemented as schema-based key-value text fields.
-
-### Memory Organization
-For organization of the memory store:
-
-- **Piled Memory:** items are stored without explicit links.
-- **Linked Memory:** items are linked with inferred relations (graph structure); agentic systems can additionally update existing items during organization.
-
-<a id="niah-evaluation-setup"></a>
-## NIAH Evaluation Setup
-
-In addition to end-to-end retrieval + generation evaluation, we provide **NIAH (Needle In A Haystack)**:
-
-- Each question is paired with a fixed evidence pool (`niah_evidence_ids`) that contains all ground-truth items.
-- The rest of the pool is filled with realistic distractors.
-- This isolates answer generation/reasoning quality from retrieval quality.
-
-See:
-- [`docs/niah.md`](docs/niah.md)
-
-
-<a id="quick-start"></a>
-## 🚀 Quick Start
-
-### Download Dataset
-
-ATM-Bench is hosted on Hugging Face at [`Jingbiao/ATM-Bench`](https://huggingface.co/datasets/Jingbiao/ATM-Bench). A one-shot script downloads the full released dataset and stages the files where the evaluation scripts expect them.
-
-**Full download (~3.3 GB)** — includes QA, NIAH pools, preprocessed memory, emails, raw images, raw videos, and the GPS reverse-geocoding cache:
+### 1. Install
 
 ```bash
-bash scripts/download_data.sh
-```
-
-This populates:
-
-```
-data/atm-bench/atm-bench.json
-data/atm-bench/atm-bench-hard.json
-data/atm-bench/niah/...
-data/raw_memory/email/emails.json                   # emails
-data/raw_memory/image/...                           # raw images
-data/raw_memory/video/...                           # raw videos
-data/raw_memory/geocoding_cache/...                 # GPS reverse-geocoding cache
-output/image/qwen3vl2b/batch_results.json           # preprocessed image memory
-output/video/qwen3vl2b/batch_results.json           # preprocessed video memory
-```
-
-The HF files `data/processed_memory/{image,video}_batch_results.json` are automatically renamed/copied into `output/image/qwen3vl2b/batch_results.json` and `output/video/qwen3vl2b/batch_results.json` by the script.
-
-The script uses the `huggingface_hub` Python package (installed automatically if missing). If the dataset is private, run `huggingface-cli login` first.
-
-### Installation
-
-```bash
-conda create -n atmbench python=3.11 -y
-conda activate atmbench
+conda create -n ltma python=3.11 -y
+conda activate ltma
 pip install -r requirements.txt
 pip install -e .
 ```
 
-On macOS / Apple Silicon, use the local setup helper instead. The full
-requirements include optional GPU/video-serving packages (`vllm`, `decord`) that
-are not reliably available via pip on macOS:
+On macOS / Apple Silicon (GPU/video-serving packages like `vllm`/`decord` are
+not reliable via pip):
 
 ```bash
 bash scripts/setup_local_mac.sh
 ```
 
-### API Keys
-
-Set via environment variables:
-```bash
-export OPENAI_API_KEY="your-key"
-export VLLM_API_KEY="your-key"
-```
-
-Or use local key files (gitignored):
-- `api_keys/.openai_key`
-- `api_keys/.vllm_key`
-
-### Prepare Memory Files
-
-Before running baselines, the image/video `batch_results.json` files must exist under `output/{image,video}/qwen3vl2b/`. You have two options:
-
-**Option A (recommended): download the preprocessed memory from Hugging Face.**
-
-If you already ran `bash scripts/download_data.sh` above, the preprocessed memory files are already staged at:
-
-- `output/image/qwen3vl2b/batch_results.json`
-- `output/video/qwen3vl2b/batch_results.json`
-
-Nothing more to do — you can skip straight to the Quick commands.
-
-**Option B: regenerate the memory files from raw images/videos.**
-
-Only needed if you want to re-run preprocessing (for example, to try a different VLM or your own raw memory). Requires raw images under `data/raw_memory/image/` and videos under `data/raw_memory/video/`:
+### 2. Data (ATM-Bench, ~3.3 GB from Hugging Face)
 
 ```bash
-# Optional but recommended: preload reverse-geocoding cache
-# Cache files are keyed by media filename stem, so the cache bundle must match
-# the current image/video filenames.
-bash scripts/memory_processor/image/copy_gps_cache.sh output/image/qwen3vl2b/cache
-bash scripts/memory_processor/video/copy_gps_cache.sh output/video/qwen3vl2b/cache
-
-# Generate memory itemization results
-bash scripts/memory_processor/image/memory_itemize/run_qwen3vl2b.sh
-bash scripts/memory_processor/video/memory_itemize/run_qwen3vl2b.sh
+bash scripts/download_data.sh
 ```
 
+This stages QA, NIAH pools, preprocessed memory, emails, raw media, and the
+GPS reverse-geocoding cache under `data/` and `output/`. Full data layout:
+[`docs/data.md`](docs/data.md).
 
-### Quick commands (MMRAG + Oracle)
+### 3. API keys
 
 ```bash
-# MMRAG (runs both ATM-bench and ATM-bench-hard)
-#   Needs: `bash scripts/download_data.sh`
-#        + a running vLLM endpoint at http://127.0.0.1:8000/v1/chat/completions
-#          serving Qwen/Qwen3-VL-8B-Instruct-FP8 (override with VLLM_ENDPOINT /
-#          ANSWERER_MODEL env vars).
-bash scripts/QA_Agent/MMRAG/run.sh
-
-# Oracle with Qwen3-VL-8B on raw images/videos (local upper bound)
-#   Needs: `bash scripts/download_data.sh`
-#        + a running vLLM endpoint serving Qwen/Qwen3-VL-8B-Instruct-FP8.
-bash scripts/QA_Agent/Oracle/run_oracle_qwen3vl8b_raw.sh
-
-# Oracle with GPT-5 on raw images/videos (no local GPU / vLLM)
-#   Needs: `bash scripts/download_data.sh`
-#        + OPENAI_API_KEY set in the environment or api_keys/.openai_key.
-bash scripts/QA_Agent/Oracle/run_oracle_gpt5.sh
+export OPENAI_API_KEY="your-key"     # or api_keys/.openai_key
+export VLLM_API_KEY="your-key"       # or api_keys/.vllm_key
 ```
 
-### Baseline Compatibility and Environments
+### 4. Run LTMA (ATM-RAG)
 
-- Core baselines (`MMRAG`, `Oracle`, `NIAH`) are tested in the main `atmbench` environment.
-- Third-party memory-system baselines in this repo include:
-  - `A-Mem`
-  - `HippoRAG2`
-  - `mem0`
-  - `MemoryOS`
-  - `MemPalace`
-  - `SimpleMem`
-- `MemoryOS` and `MemPalace` are strongly recommended to run in separate conda environments. `MemoryOS` uses a FAISS / sentence-transformers stack, while `MemPalace` uses ChromaDB / ONNX-backed local embeddings; isolating them avoids dependency collisions with the core baseline environment and each other.
-- `A-Mem`, `HippoRAG2`, and `mem0` are tested to be compatible with the core baseline environment, but separate environments are still safer for reproducibility and dependency isolation.
-- `SimpleMem` runs against a sibling clone of the upstream repo (LanceDB + Tantivy FTS stack); see [`memqa/qa_agent_baselines/SimpleMem/README.md`](memqa/qa_agent_baselines/SimpleMem/README.md). Pinned upstream commit: [`094027eca4c890dc9912be8cee1da04428de8076`](https://github.com/aiming-lab/SimpleMem/commit/094027eca4c890dc9912be8cee1da04428de8076) (verified by `scripts/QA_Agent/SimpleMem/run.sh`).
-- Setup references for the vendored baselines are under `third_party/`:
-  - `third_party/A-mem/`
-  - `third_party/HippoRAG/`
-  - `third_party/mem0/`
-  - `third_party/MemoryOS/`
-- `MemPalace` ships as a PyPI package (`mempalace==3.3.5`) and is installed via `memqa/qa_agent_baselines/Mempalace/requirements.txt` — no `third_party/` vendoring.
-- `SimpleMem` is **not** vendored under `third_party/`. Clone the upstream repo at the pinned commit alongside ATMBench and point `SIMPLEMEM_DIR` at it (defaults to `../SimpleMem`):
+Needs a vLLM endpoint serving `Qwen/Qwen3-VL-8B-Instruct-FP8` at
+`http://127.0.0.1:8000/v1/...` (override with `VLLM_ENDPOINT` / `ANSWERER_MODEL`).
 
-  ```bash
-  git clone https://github.com/aiming-lab/SimpleMem.git ../SimpleMem
-  git -C ../SimpleMem checkout 094027eca4c890dc9912be8cee1da04428de8076
-  pip install -r ../SimpleMem/requirements.txt
-  pip install -r memqa/qa_agent_baselines/SimpleMem/requirements.txt
-  ```
-- The General-Purpose Agent evaluation harness for all five agents (Claude Code, Codex, Pi, OpenCode, OpenClaw) ships under [`agent_systems/`](agent_systems/README.md).
+```bash
+# Hybrid + adaptive-routing MMRAG on both the standard and -Hard splits,
+# using the frozen config in config/best_routing_config*.json.
+bash scripts/QA_Agent/MMRAG/run_routing_reranker.sh
+```
 
-For detailed setup, data layout, and reproducibility settings, see:
-- [`docs/README.md`](docs/README.md)
-- [`docs/data.md`](docs/data.md)
-- [`docs/reproducibility.md`](docs/reproducibility.md)
-- [`docs/baseline.md`](docs/baseline.md)
-- [`docs/niah.md`](docs/niah.md)
+The retriever-only variants (`scripts/QA_Agent/MMRAG/run_retrieval_only_cpu*.sh`)
+evaluate Recall@k on CPU without an answerer endpoint. See
+[`docs/reproducibility.md`](docs/reproducibility.md) for full settings.
+
+### Smoke test the method (CPU, no data/models)
+
+```bash
+python -m unittest ltma.test_hybrid_retriever -v
+python -m ltma.demo_cli "Where did I have ramen in Tokyo?"
+```
 
 <a id="repository-structure"></a>
 ## 📁 Repository Structure
 
 ```
-ATMBench/
-├── memqa/              # Core memory QA implementation
-├── scripts/            # Experiment scripts
+LTMA/
+├── ltma/               # ★ LTMA method: hybrid + adaptive-routing retrieval
+├── config/             # Frozen best routing/fusion configs (reproduce these)
+├── experiments/        # Research scaffolding (sweeps/optimizers) — not needed to reproduce
+├── memqa/              # ATM-Bench core (baselines, retrievers, evaluation) + our retriever/reranker additions
+├── agent_systems/      # General-purpose agent benchmark harness
+├── scripts/            # Data download, run, and eval entry points
 ├── docs/               # Documentation
-├── data/               # Data directory (user-provided)
-├── third_party/        # Vendored agentic memory systems
-└── output/             # Experiment outputs (gitignored)
+├── third_party/        # Vendored memory-system baselines
+├── data/  output/      # User-provided data and outputs (gitignored)
+└── LICENSE
 ```
 
-<a id="documentation"></a>
-## 📚 Documentation
+<a id="attribution--upstream"></a>
+## 🙏 Attribution & Upstream
 
-- [`docs/README.md`](docs/README.md) - Getting started guide
-- [`docs/data.md`](docs/data.md) - Data format and preparation
-- [`docs/baseline.md`](docs/baseline.md) - Baseline implementations
-- [`docs/niah.md`](docs/niah.md) - NIAH protocol and usage
-- [`docs/metrics.md`](docs/metrics.md) - Evaluation metrics
-- [`docs/reproducibility.md`](docs/reproducibility.md) - Reproduction instructions
-- [`docs/repo_structure.md`](docs/repo_structure.md) - Repository organization
+LTMA is built on **ATM-Bench** and inherits its benchmark, dataset, task, core
+`memqa/` code, and all comparison baselines.
+
+- **Upstream:** [`JingbiaoMei/ATM-Bench`](https://github.com/JingbiaoMei/ATM-Bench)
+- **Built on upstream commit:** [`d552cc5`](https://github.com/JingbiaoMei/ATM-Bench/commit/d552cc5b84f495ff173e7a9ddb598e9edfd2b539) *(2026-04-10)*
+- **Dataset:** [`Jingbiao/ATM-Bench`](https://huggingface.co/datasets/Jingbiao/ATM-Bench) on Hugging Face
+- **Leaderboard:** [atmbench.github.io/leaderboard.html](https://atmbench.github.io/leaderboard.html)
+
+Vendored / ported baselines keep their own upstream licenses and pinned commits
+(e.g. SimpleMem @ [`094027e`](https://github.com/aiming-lab/SimpleMem/commit/094027eca4c890dc9912be8cee1da04428de8076)); see
+[`docs/baseline.md`](docs/baseline.md) and each baseline's README.
 
 <a id="citation"></a>
 ## 📖 Citation
 
-If you use ATM-Bench in your research, please cite:
+If you use LTMA, please also cite the ATM-Bench benchmark it is built on:
 
 ```bibtex
 @article{mei2026atm,
@@ -375,17 +211,18 @@ If you use ATM-Bench in your research, please cite:
 }
 ```
 
-<a id="links"></a>
-## 🔗 Links
-
-- 📄 **Paper:** https://arxiv.org/abs/2603.01990
-- 🌐 **Project Page:** https://atmbench.github.io/
-- 🏆 **Live Leaderboard:** https://atmbench.github.io/leaderboard.html
-- 🤗 **Dataset:** https://huggingface.co/datasets/Jingbiao/ATM-Bench
-- 💻 **Code:** https://github.com/JingbiaoMei/ATM-Bench
-- 🐛 **Issues:** https://github.com/JingbiaoMei/ATM-Bench/issues
+<!-- TODO: add the LTMA citation once your paper is public.
+@article{zhu2026ltma,
+  title={<LTMA paper title>},
+  author={Zhu, Kuanyan and ...},
+  year={2026}
+}
+-->
 
 <a id="license"></a>
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE). Portions are derived from
+[ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench) (MIT). Vendored third-party
+baselines under `third_party/` and `memqa/qa_agent_baselines/` retain their
+respective upstream licenses.

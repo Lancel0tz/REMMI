@@ -3,11 +3,11 @@
 Runs the synthetic 5-item corpus (no GPU, no network) so a supervisor can
 see channel behavior at a glance:
 
-    python -m memqa.extensions.hybrid.demo_cli
+    python -m ltma.demo_cli
 
 To try a custom query:
 
-    python -m memqa.extensions.hybrid.demo_cli "Where did I have ramen in Tokyo?"
+    python -m ltma.demo_cli "Where did I have ramen in Tokyo?"
 
 A real ATM-Bench run still goes through `mmrag_retrieve_answer.py`; the
 hybrid retriever will be wired into that script as a new `--retriever
@@ -19,8 +19,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from memqa.extensions.hybrid import HybridRetriever, HybridScoringConfig
-from memqa.extensions.hybrid.hybrid_retriever import (
+from ltma import HybridRetriever, HybridScoringConfig
+from ltma.hybrid_retriever import (
     build_synthetic_items,
     parse_query_constraints,
 )

@@ -38,7 +38,7 @@ from tqdm import tqdm
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-from memqa.extensions.hybrid import (
+from ltma import (
     HybridRetriever,
     HybridScoringConfig,
     RoutingRetriever,
@@ -48,7 +48,7 @@ from memqa.extensions.hybrid import (
     analyze_query,
     adaptive_weights,
 )
-from memqa.extensions.hybrid.routing_retriever import adaptive_weights_hard
+from ltma.routing_retriever import adaptive_weights_hard
 from memqa.retrieve.utils import (
     RetrievalItem,
     EmailTextConfig,

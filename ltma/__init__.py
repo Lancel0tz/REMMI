@@ -9,17 +9,17 @@ Implements a `HybridRetriever` that combines:
 Score fusion supports both Reciprocal Rank Fusion (RRF) and weighted-sum
 fusion over min-max normalized per-channel scores.
 
-This is a Direction-3 prototype for the project proposal
-"Benchmarking Long-Term Agentic Multimodal Personal Memory".
+This is the core of the LTMA method (reported as ATM-RAG), built on the
+ATM-Bench benchmark. See the top-level README for the full contribution map.
 """
 
-from memqa.extensions.hybrid.hybrid_retriever import (
+from ltma.hybrid_retriever import (
     HybridRetriever,
     HybridScoringConfig,
     QueryConstraints,
     parse_query_constraints,
 )
-from memqa.extensions.hybrid.routing_retriever import (
+from ltma.routing_retriever import (
     RoutingRetriever,
     RoutingConfig,
     ConfidenceConfig,
