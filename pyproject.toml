@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "chronicle-mem"
 version = "0.1.0"
-description = "CHRONICLE: hybrid adaptive-routing retrieval for long-term personalized memory QA, built on ATM-Bench"
+description = "ChronicleMem: hybrid adaptive-routing retrieval for long-term personalized memory QA, built on ATM-Bench"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [

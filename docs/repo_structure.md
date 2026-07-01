@@ -1,9 +1,9 @@
 # Repo Structure
 
-CHRONICLE is organized around:
+ChronicleMem is organized around:
 
-- `chronicle/`: the CHRONICLE method — hybrid + query-adaptive routing retrieval (our contribution)
-- `config/`: frozen best routing/fusion configs used to reproduce the CHRONICLE results
+- `chronicle/`: the ChronicleMem method — hybrid + query-adaptive routing retrieval (our contribution)
+- `config/`: frozen best routing/fusion configs used to reproduce the ChronicleMem results
 - `experiments/`: exploratory sweeps/optimizers that produced the configs (not needed to reproduce)
 - `memqa/`: ATM-Bench core library (processors, retrieval, baselines, evaluation), inherited from upstream plus our Qwen3-VL retriever and reranker additions
 - `agent_systems/`: general-purpose agent benchmark harness
@@ -12,13 +12,13 @@ CHRONICLE is organized around:
 - `output/`: generated artifacts/results (gitignored)
 
 See the top-level [README](../README.md#-whats-new-in-chronicle) for the full
-contribution map (what CHRONICLE adds on top of ATM-Bench).
+contribution map (what ChronicleMem adds on top of ATM-Bench).
 
 ## Key Directories
 
 ### `chronicle/`
 
-The CHRONICLE method package (imported as `from chronicle import ...`):
+The ChronicleMem method package (imported as `from chronicle import ...`):
 - `hybrid_retriever.py`: metadata + BM25 + dense hybrid retrieval with RRF / weighted-sum fusion
 - `routing_retriever.py`: query-adaptive channel routing (`RoutingRetriever`, standard + `-Hard` weight profiles)
 - `llm_router.py`: LLM-driven route selection
