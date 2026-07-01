@@ -1,11 +1,11 @@
 # Experiments — research scaffolding
 
-This directory holds the exploratory scripts used while developing **LTMA**
+This directory holds the exploratory scripts used while developing **CHRONICLE**
 (hyperparameter sweeps, routing-weight optimizers, recall ablations, retriever
 comparisons, cluster launch scripts).
 
 > **These are provided for transparency, not for reproduction.** You do **not**
-> need anything in here to reproduce the headline ATM-RAG results — those run
+> need anything in here to reproduce the headline CHRONICLE results — those run
 > from the pinned config in [`config/`](../config) via the commands in the main
 > [README](../README.md#-reproduce). The scripts here are kept as-is: they may
 > reference machine-specific paths, SLURM partitions, or intermediate artifacts
@@ -20,6 +20,6 @@ comparisons, cluster launch scripts).
 
 ## Provenance
 
-Everything here imports the LTMA method package the same way the production
-scripts do (`from ltma import ...`), so it runs from the repo root against the
+Everything here imports the CHRONICLE method package the same way the production
+scripts do (`from chronicle import ...`), so it runs from the repo root against the
 same code path — it is simply not part of the curated reproduce flow.

@@ -1,9 +1,9 @@
 # Repo Structure
 
-LTMA is organized around:
+CHRONICLE is organized around:
 
-- `ltma/`: the LTMA method — hybrid + query-adaptive routing retrieval (our contribution)
-- `config/`: frozen best routing/fusion configs used to reproduce the ATM-RAG results
+- `chronicle/`: the CHRONICLE method — hybrid + query-adaptive routing retrieval (our contribution)
+- `config/`: frozen best routing/fusion configs used to reproduce the CHRONICLE results
 - `experiments/`: exploratory sweeps/optimizers that produced the configs (not needed to reproduce)
 - `memqa/`: ATM-Bench core library (processors, retrieval, baselines, evaluation), inherited from upstream plus our Qwen3-VL retriever and reranker additions
 - `agent_systems/`: general-purpose agent benchmark harness
@@ -11,14 +11,14 @@ LTMA is organized around:
 - `data/`: local inputs (gitignored)
 - `output/`: generated artifacts/results (gitignored)
 
-See the top-level [README](../README.md#-whats-new-in-ltma) for the full
-contribution map (what LTMA adds on top of ATM-Bench).
+See the top-level [README](../README.md#-whats-new-in-chronicle) for the full
+contribution map (what CHRONICLE adds on top of ATM-Bench).
 
 ## Key Directories
 
-### `ltma/`
+### `chronicle/`
 
-The LTMA method package (imported as `from ltma import ...`):
+The CHRONICLE method package (imported as `from chronicle import ...`):
 - `hybrid_retriever.py`: metadata + BM25 + dense hybrid retrieval with RRF / weighted-sum fusion
 - `routing_retriever.py`: query-adaptive channel routing (`RoutingRetriever`, standard + `-Hard` weight profiles)
 - `llm_router.py`: LLM-driven route selection

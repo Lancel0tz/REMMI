@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
-from ltma.routing_retriever import (
+from chronicle.routing_retriever import (
     QuerySignals,
     RouteStrategy,
     analyze_query,

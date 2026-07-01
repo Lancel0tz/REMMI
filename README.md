@@ -1,6 +1,6 @@
 <div align="center">
 
-# LTMA — Hybrid Adaptive-Routing Retrieval for Long-Term Personal Memory QA
+# CHRONICLE — Hybrid Adaptive-Routing Retrieval for Long-Term Personal Memory QA
 
 **A hybrid, query-adaptive multimodal RAG method for long-term personalized referential memory QA, built on and evaluated with [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench).**
 
@@ -14,21 +14,21 @@
 [![Hugging Face](https://img.shields.io/badge/🤗_HuggingFace-Dataset-FFD21E.svg)](https://huggingface.co/datasets/Jingbiao/ATM-Bench)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[✨ What's New](#-whats-new-in-ltma) • [🧩 Method](#-method) • [📊 Results](#-results) • [🔁 Reproduce](#-reproduce) • [📁 Structure](#-repository-structure) • [📖 Citation](#-citation)
+[✨ What's New](#-whats-new-in-chronicle) • [🧩 Method](#-method) • [📊 Results](#-results) • [🔁 Reproduce](#-reproduce) • [📁 Structure](#-repository-structure) • [📖 Citation](#-citation)
 
 </div>
 
-> **LTMA** is incremental work on top of the **ATM-Bench** benchmark. It does not
-> re-release the benchmark; it contributes a retrieval method (reported as
-> **ATM-RAG** in the results below) and the code to reproduce it. The benchmark,
-> dataset, task definition, and the baselines LTMA compares against are the work
+> **CHRONICLE** is incremental work on top of the **ATM-Bench** benchmark. It does not
+> re-release the benchmark; it contributes a retrieval method and the code to
+> reproduce it (the `CHRONICLE (Ours)` row in the results below). The benchmark,
+> dataset, task definition, and the baselines CHRONICLE compares against are the work
 > of the ATM-Bench authors — see [Attribution](#-attribution--upstream).
 
 ---
 
 ## 📋 Table of Contents
 
-- [✨ What's New in LTMA](#-whats-new-in-ltma)
+- [✨ What's New in CHRONICLE](#-whats-new-in-chronicle)
 - [🧩 Method](#-method)
 - [📊 Results](#-results)
 - [🔁 Reproduce](#-reproduce)
@@ -37,19 +37,19 @@
 - [📖 Citation](#-citation)
 - [📝 License](#-license)
 
-<a id="whats-new-in-ltma"></a>
-## ✨ What's New in LTMA
+<a id="whats-new-in-chronicle"></a>
+## ✨ What's New in CHRONICLE
 
-Everything below is added by LTMA on top of upstream ATM-Bench. The core method
-lives in a single top-level package, [`ltma/`](ltma/), so the contribution
+Everything below is added by CHRONICLE on top of upstream ATM-Bench. The core method
+lives in a single top-level package, [`chronicle/`](chronicle/), so the contribution
 boundary is explicit.
 
 | Contribution | Where | Notes |
 |--------------|-------|-------|
-| **Hybrid retriever** — metadata filtering + BM25 sparse + dense, fused via RRF or weighted-sum | [`ltma/hybrid_retriever.py`](ltma/hybrid_retriever.py) | Pluggable dense channel; CPU-testable without torch |
-| **Query-adaptive routing** — per-query signal analysis → adaptive channel weights (easy/hard variants) | [`ltma/routing_retriever.py`](ltma/routing_retriever.py) | `RoutingRetriever`, `adaptive_weights`, `adaptive_weights_hard` |
-| **LLM router** — LLM-driven route selection over retrieval channels | [`ltma/llm_router.py`](ltma/llm_router.py) | |
-| **Query decomposition** — splits multi-evidence queries into sub-queries | [`ltma/query_decomposer.py`](ltma/query_decomposer.py) | |
+| **Hybrid retriever** — metadata filtering + BM25 sparse + dense, fused via RRF or weighted-sum | [`chronicle/hybrid_retriever.py`](chronicle/hybrid_retriever.py) | Pluggable dense channel; CPU-testable without torch |
+| **Query-adaptive routing** — per-query signal analysis → adaptive channel weights (easy/hard variants) | [`chronicle/routing_retriever.py`](chronicle/routing_retriever.py) | `RoutingRetriever`, `adaptive_weights`, `adaptive_weights_hard` |
+| **LLM router** — LLM-driven route selection over retrieval channels | [`chronicle/llm_router.py`](chronicle/llm_router.py) | |
+| **Query decomposition** — splits multi-evidence queries into sub-queries | [`chronicle/query_decomposer.py`](chronicle/query_decomposer.py) | |
 | **Qwen3-VL dual-encoder retriever** for MMRAG dense retrieval | [`memqa/retrieve/retrievers.py`](memqa/retrieve/retrievers.py) | Added alongside upstream retrievers |
 | **Qwen3-Reranker fix** | [`memqa/retrieve/rerankers.py`](memqa/retrieve/rerankers.py) | |
 | **Frozen best configs** from Bayesian optimization | [`config/best_routing_config.json`](config/best_routing_config.json), [`config/best_routing_config_hard.json`](config/best_routing_config_hard.json) | The numbers below reproduce from these |
@@ -63,7 +63,7 @@ reproduce the headline numbers.
 <a id="method"></a>
 ## 🧩 Method
 
-LTMA retrieves over ATM-Bench's Schema-Guided Memory (SGM) items with a hybrid,
+CHRONICLE retrieves over ATM-Bench's Schema-Guided Memory (SGM) items with a hybrid,
 query-adaptive pipeline:
 
 1. **Three retrieval channels**
@@ -91,7 +91,7 @@ standard set from **0.732 → 0.775** (+4.3%).
 
 **Memory-system comparison** — answerer `Qwen3-VL-8B-Instruct-FP8`, memory
 processor `Qwen3-VL-2B-Instruct`, `-Hard` on the `atm-bench-hard` release set.
-**LTMA is the `ATM-RAG (Ours)` row.**
+**CHRONICLE is the `CHRONICLE (Ours)` row at the bottom.**
 
 | System | Index Time (hr) ↓ | ATM-Bench QS ↑ | ATM-Bench Recall@10 ↑ | ATM-Bench-Hard QS ↑ | ATM-Bench-Hard Recall@10 ↑ |
 |--------|------------------:|---------------:|----------------------:|--------------------:|---------------------------:|
@@ -101,7 +101,7 @@ processor `Qwen3-VL-2B-Instruct`, `-Hard` on the `atm-bench-hard` release set.
 | [HippoRAG2](https://github.com/OSU-NLP-Group/HippoRAG) | 1.5 | 42.9 | 66.4 | 9.4 | 31.9 |
 | [MemPalace](https://github.com/MemPalace/mempalace) | 0.5 | 56.8 | 76.4 | 9.7 | 28.3 |
 | [SimpleMem](https://github.com/aiming-lab/SimpleMem) | 15.7 | 27.3 | 23.3 | 3.2 | 7.0 |
-| **ATM-RAG / LTMA (Ours)** | **0.5** | **51.0** | **68.7** | **8.4** | **28.8** |
+| **CHRONICLE (Ours)** | **0.5** | **51.0** | **68.7** | **8.4** | **28.8** |
 
 <!-- TODO: add ablations (routing on/off, per-channel, reranker) once finalized for the paper. -->
 
@@ -111,8 +111,8 @@ processor `Qwen3-VL-2B-Instruct`, `-Hard` on the `atm-bench-hard` release set.
 ### 1. Install
 
 ```bash
-conda create -n ltma python=3.11 -y
-conda activate ltma
+conda create -n chronicle python=3.11 -y
+conda activate chronicle
 pip install -r requirements.txt
 pip install -e .
 ```
@@ -141,7 +141,7 @@ export OPENAI_API_KEY="your-key"     # or api_keys/.openai_key
 export VLLM_API_KEY="your-key"       # or api_keys/.vllm_key
 ```
 
-### 4. Run LTMA (ATM-RAG)
+### 4. Run CHRONICLE
 
 Needs a vLLM endpoint serving `Qwen/Qwen3-VL-8B-Instruct-FP8` at
 `http://127.0.0.1:8000/v1/...` (override with `VLLM_ENDPOINT` / `ANSWERER_MODEL`).
@@ -159,16 +159,16 @@ evaluate Recall@k on CPU without an answerer endpoint. See
 ### Smoke test the method (CPU, no data/models)
 
 ```bash
-python -m unittest ltma.test_hybrid_retriever -v
-python -m ltma.demo_cli "Where did I have ramen in Tokyo?"
+python -m unittest chronicle.test_hybrid_retriever -v
+python -m chronicle.demo_cli "Where did I have ramen in Tokyo?"
 ```
 
 <a id="repository-structure"></a>
 ## 📁 Repository Structure
 
 ```
-LTMA/
-├── ltma/               # ★ LTMA method: hybrid + adaptive-routing retrieval
+CHRONICLE/
+├── chronicle/               # ★ CHRONICLE method: hybrid + adaptive-routing retrieval
 ├── config/             # Frozen best routing/fusion configs (reproduce these)
 ├── experiments/        # Research scaffolding (sweeps/optimizers) — not needed to reproduce
 ├── memqa/              # ATM-Bench core (baselines, retrievers, evaluation) + our retriever/reranker additions
@@ -183,7 +183,7 @@ LTMA/
 <a id="attribution--upstream"></a>
 ## 🙏 Attribution & Upstream
 
-LTMA is built on **ATM-Bench** and inherits its benchmark, dataset, task, core
+CHRONICLE is built on **ATM-Bench** and inherits its benchmark, dataset, task, core
 `memqa/` code, and all comparison baselines.
 
 - **Upstream:** [`JingbiaoMei/ATM-Bench`](https://github.com/JingbiaoMei/ATM-Bench)
@@ -198,7 +198,7 @@ Vendored / ported baselines keep their own upstream licenses and pinned commits
 <a id="citation"></a>
 ## 📖 Citation
 
-If you use LTMA, please also cite the ATM-Bench benchmark it is built on:
+If you use CHRONICLE, please also cite the ATM-Bench benchmark it is built on:
 
 ```bibtex
 @article{mei2026atm,
@@ -211,9 +211,9 @@ If you use LTMA, please also cite the ATM-Bench benchmark it is built on:
 }
 ```
 
-<!-- TODO: add the LTMA citation once your paper is public.
-@article{zhu2026ltma,
-  title={<LTMA paper title>},
+<!-- TODO: add the CHRONICLE citation once your paper is public.
+@article{zhu2026chronicle,
+  title={<CHRONICLE paper title>},
   author={Zhu, Kuanyan and ...},
   year={2026}
 }

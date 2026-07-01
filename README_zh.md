@@ -1,6 +1,6 @@
 <div align="center">
 
-# LTMA — 面向长期个人记忆问答的混合自适应路由检索
+# CHRONICLE — 面向长期个人记忆问答的混合自适应路由检索
 
 **一个混合、查询自适应的多模态 RAG 方法，用于长期个性化指代记忆问答，构建于并在 [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench) 上评测。**
 
@@ -14,20 +14,20 @@
 [![Hugging Face](https://img.shields.io/badge/🤗_HuggingFace-Dataset-FFD21E.svg)](https://huggingface.co/datasets/Jingbiao/ATM-Bench)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[✨ 新增内容](#-ltma-新增内容) • [🧩 方法](#-方法) • [📊 结果](#-结果) • [🔁 复现](#-复现) • [📁 结构](#-仓库结构) • [📖 引用](#-引用)
+[✨ 新增内容](#-chronicle-新增内容) • [🧩 方法](#-方法) • [📊 结果](#-结果) • [🔁 复现](#-复现) • [📁 结构](#-仓库结构) • [📖 引用](#-引用)
 
 </div>
 
-> **LTMA** 是在 **ATM-Bench** 基准之上的增量工作。它不重新发布该基准，而是贡献了
-> 一个检索方法（在下方结果中记为 **ATM-RAG**）以及复现它的代码。基准、数据集、
-> 任务定义以及 LTMA 所对比的各 baseline 均为 ATM-Bench 作者的工作，详见
+> **CHRONICLE** 是在 **ATM-Bench** 基准之上的增量工作。它不重新发布该基准，而是贡献了
+> 一个检索方法以及复现它的代码（即下方结果中的 `CHRONICLE (Ours)` 那一行）。基准、数据集、
+> 任务定义以及 CHRONICLE 所对比的各 baseline 均为 ATM-Bench 作者的工作，详见
 > [致谢与上游](#-致谢与上游)。
 
 ---
 
 ## 📋 目录
 
-- [✨ LTMA 新增内容](#-ltma-新增内容)
+- [✨ CHRONICLE 新增内容](#-chronicle-新增内容)
 - [🧩 方法](#-方法)
 - [📊 结果](#-结果)
 - [🔁 复现](#-复现)
@@ -36,18 +36,18 @@
 - [📖 引用](#-引用)
 - [📝 许可证](#-许可证)
 
-<a id="ltma-新增内容"></a>
-## ✨ LTMA 新增内容
+<a id="chronicle-新增内容"></a>
+## ✨ CHRONICLE 新增内容
 
-以下全部是 LTMA 在上游 ATM-Bench 之上新增的内容。核心方法集中在一个顶层包
-[`ltma/`](ltma/) 中，贡献边界一目了然。
+以下全部是 CHRONICLE 在上游 ATM-Bench 之上新增的内容。核心方法集中在一个顶层包
+[`chronicle/`](chronicle/) 中，贡献边界一目了然。
 
 | 贡献 | 位置 | 说明 |
 |------|------|------|
-| **混合检索器** — 元数据过滤 + BM25 稀疏 + 稠密，通过 RRF 或加权和融合 | [`ltma/hybrid_retriever.py`](ltma/hybrid_retriever.py) | 稠密通道可插拔；无需 torch 即可在 CPU 上测试 |
-| **查询自适应路由** — 逐查询信号分析 → 自适应通道权重（标准/困难两套） | [`ltma/routing_retriever.py`](ltma/routing_retriever.py) | `RoutingRetriever`、`adaptive_weights`、`adaptive_weights_hard` |
-| **LLM 路由器** — 由 LLM 驱动的检索通道路由选择 | [`ltma/llm_router.py`](ltma/llm_router.py) | |
-| **查询分解** — 将多证据查询拆成子查询 | [`ltma/query_decomposer.py`](ltma/query_decomposer.py) | |
+| **混合检索器** — 元数据过滤 + BM25 稀疏 + 稠密，通过 RRF 或加权和融合 | [`chronicle/hybrid_retriever.py`](chronicle/hybrid_retriever.py) | 稠密通道可插拔；无需 torch 即可在 CPU 上测试 |
+| **查询自适应路由** — 逐查询信号分析 → 自适应通道权重（标准/困难两套） | [`chronicle/routing_retriever.py`](chronicle/routing_retriever.py) | `RoutingRetriever`、`adaptive_weights`、`adaptive_weights_hard` |
+| **LLM 路由器** — 由 LLM 驱动的检索通道路由选择 | [`chronicle/llm_router.py`](chronicle/llm_router.py) | |
+| **查询分解** — 将多证据查询拆成子查询 | [`chronicle/query_decomposer.py`](chronicle/query_decomposer.py) | |
 | **Qwen3-VL 双编码器检索器**（MMRAG 稠密检索） | [`memqa/retrieve/retrievers.py`](memqa/retrieve/retrievers.py) | 与上游检索器并列新增 |
 | **Qwen3-Reranker 修复** | [`memqa/retrieve/rerankers.py`](memqa/retrieve/rerankers.py) | |
 | **冻结的最优配置**（贝叶斯优化产出） | [`config/best_routing_config.json`](config/best_routing_config.json)、[`config/best_routing_config_hard.json`](config/best_routing_config_hard.json) | 下方数字即由此复现 |
@@ -59,7 +59,7 @@
 <a id="方法"></a>
 ## 🧩 方法
 
-LTMA 在 ATM-Bench 的 Schema-Guided Memory (SGM) 记忆项上做混合、查询自适应检索：
+CHRONICLE 在 ATM-Bench 的 Schema-Guided Memory (SGM) 记忆项上做混合、查询自适应检索：
 
 1. **三条检索通道**
    - **元数据** — 对 SGM `time` + `location` 字段做软过滤/加权。
@@ -81,8 +81,8 @@ LTMA 在 ATM-Bench 的 Schema-Guided Memory (SGM) 记忆项上做混合、查询
 > 下方快照可能滞后于新提交。
 
 **记忆系统对比** — 回答模型 `Qwen3-VL-8B-Instruct-FP8`，记忆处理器
-`Qwen3-VL-2B-Instruct`，`-Hard` 使用 `atm-bench-hard` 发布集。**LTMA 即
-`ATM-RAG (Ours)` 那一行。**
+`Qwen3-VL-2B-Instruct`，`-Hard` 使用 `atm-bench-hard` 发布集。**CHRONICLE 即最下方
+`CHRONICLE (Ours)` 那一行。**
 
 | 系统 | 建索引时间 (hr) ↓ | ATM-Bench QS ↑ | ATM-Bench Recall@10 ↑ | ATM-Bench-Hard QS ↑ | ATM-Bench-Hard Recall@10 ↑ |
 |------|------------------:|---------------:|----------------------:|--------------------:|---------------------------:|
@@ -92,7 +92,7 @@ LTMA 在 ATM-Bench 的 Schema-Guided Memory (SGM) 记忆项上做混合、查询
 | [HippoRAG2](https://github.com/OSU-NLP-Group/HippoRAG) | 1.5 | 42.9 | 66.4 | 9.4 | 31.9 |
 | [MemPalace](https://github.com/MemPalace/mempalace) | 0.5 | 56.8 | 76.4 | 9.7 | 28.3 |
 | [SimpleMem](https://github.com/aiming-lab/SimpleMem) | 15.7 | 27.3 | 23.3 | 3.2 | 7.0 |
-| **ATM-RAG / LTMA (Ours)** | **0.5** | **51.0** | **68.7** | **8.4** | **28.8** |
+| **CHRONICLE (Ours)** | **0.5** | **51.0** | **68.7** | **8.4** | **28.8** |
 
 <!-- TODO: 论文定稿后补充消融（路由开关、各通道、reranker）。 -->
 
@@ -102,8 +102,8 @@ LTMA 在 ATM-Bench 的 Schema-Guided Memory (SGM) 记忆项上做混合、查询
 ### 1. 安装
 
 ```bash
-conda create -n ltma python=3.11 -y
-conda activate ltma
+conda create -n chronicle python=3.11 -y
+conda activate chronicle
 pip install -r requirements.txt
 pip install -e .
 ```
@@ -130,7 +130,7 @@ export OPENAI_API_KEY="your-key"     # 或 api_keys/.openai_key
 export VLLM_API_KEY="your-key"       # 或 api_keys/.vllm_key
 ```
 
-### 4. 运行 LTMA（ATM-RAG）
+### 4. 运行 CHRONICLE
 
 需要一个在 `http://127.0.0.1:8000/v1/...` 提供 `Qwen/Qwen3-VL-8B-Instruct-FP8`
 的 vLLM 端点（可用 `VLLM_ENDPOINT` / `ANSWERER_MODEL` 覆盖）。
@@ -147,16 +147,16 @@ bash scripts/QA_Agent/MMRAG/run_routing_reranker.sh
 ### 方法冒烟测试（CPU，无需数据/模型）
 
 ```bash
-python -m unittest ltma.test_hybrid_retriever -v
-python -m ltma.demo_cli "Where did I have ramen in Tokyo?"
+python -m unittest chronicle.test_hybrid_retriever -v
+python -m chronicle.demo_cli "Where did I have ramen in Tokyo?"
 ```
 
 <a id="仓库结构"></a>
 ## 📁 仓库结构
 
 ```
-LTMA/
-├── ltma/               # ★ LTMA 方法：混合 + 自适应路由检索
+CHRONICLE/
+├── chronicle/               # ★ CHRONICLE 方法：混合 + 自适应路由检索
 ├── config/             # 冻结的最优路由/融合配置（用于复现）
 ├── experiments/        # 研究脚手架（扫参/优化器）——复现主结果不需要
 ├── memqa/              # ATM-Bench 核心（baseline、检索、评测）+ 我们新增的检索器/reranker
@@ -171,7 +171,7 @@ LTMA/
 <a id="致谢与上游"></a>
 ## 🙏 致谢与上游
 
-LTMA 构建于 **ATM-Bench**，继承其基准、数据集、任务、核心 `memqa/` 代码以及全部对比 baseline。
+CHRONICLE 构建于 **ATM-Bench**，继承其基准、数据集、任务、核心 `memqa/` 代码以及全部对比 baseline。
 
 - **上游：** [`JingbiaoMei/ATM-Bench`](https://github.com/JingbiaoMei/ATM-Bench)
 - **基于上游 commit：** [`d552cc5`](https://github.com/JingbiaoMei/ATM-Bench/commit/d552cc5b84f495ff173e7a9ddb598e9edfd2b539) *(2026-04-10)*
@@ -185,7 +185,7 @@ LTMA 构建于 **ATM-Bench**，继承其基准、数据集、任务、核心 `me
 <a id="引用"></a>
 ## 📖 引用
 
-若使用 LTMA，请同时引用其所构建于的 ATM-Bench 基准：
+若使用 CHRONICLE，请同时引用其所构建于的 ATM-Bench 基准：
 
 ```bibtex
 @article{mei2026atm,
@@ -198,7 +198,7 @@ LTMA 构建于 **ATM-Bench**，继承其基准、数据集、任务、核心 `me
 }
 ```
 
-<!-- TODO: 论文公开后补上 LTMA 的引用。 -->
+<!-- TODO: 论文公开后补上 CHRONICLE 的引用。 -->
 
 <a id="许可证"></a>
 ## 📝 许可证

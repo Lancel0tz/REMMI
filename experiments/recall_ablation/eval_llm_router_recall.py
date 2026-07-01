@@ -23,9 +23,9 @@ from tqdm import tqdm
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from ltma import HybridRetriever, HybridScoringConfig
-from ltma.llm_router import LLMRouter
-from ltma.routing_retriever import (
+from chronicle import HybridRetriever, HybridScoringConfig
+from chronicle.llm_router import LLMRouter
+from chronicle.routing_retriever import (
     analyze_query,
     adaptive_weights,
     adaptive_weights_hard,

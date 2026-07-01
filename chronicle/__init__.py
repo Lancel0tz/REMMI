@@ -9,17 +9,17 @@ Implements a `HybridRetriever` that combines:
 Score fusion supports both Reciprocal Rank Fusion (RRF) and weighted-sum
 fusion over min-max normalized per-channel scores.
 
-This is the core of the LTMA method (reported as ATM-RAG), built on the
+This is the core of the CHRONICLE method (reported as CHRONICLE), built on the
 ATM-Bench benchmark. See the top-level README for the full contribution map.
 """
 
-from ltma.hybrid_retriever import (
+from chronicle.hybrid_retriever import (
     HybridRetriever,
     HybridScoringConfig,
     QueryConstraints,
     parse_query_constraints,
 )
-from ltma.routing_retriever import (
+from chronicle.routing_retriever import (
     RoutingRetriever,
     RoutingConfig,
     ConfidenceConfig,
