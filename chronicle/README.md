@@ -1,8 +1,8 @@
-# `chronicle` — CHRONICLE method package
+# `chronicle` — ChronicleMem method package
 
-This package is the CHRONICLE contribution on top of [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench):
+This package is the ChronicleMem contribution on top of [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench):
 a hybrid, query-adaptive retrieval method for long-term personalized memory QA
-(the `CHRONICLE (Ours)` row in the top-level [README](../README.md#-results)).
+(the `ChronicleMem (Ours)` row in the top-level [README](../README.md#-results)).
 
 It sits *alongside* the upstream baselines under `memqa/qa_agent_baselines/` and
 plugs into the existing MMRAG pipeline, so the upstream code path is unchanged.

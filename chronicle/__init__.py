@@ -9,7 +9,7 @@ Implements a `HybridRetriever` that combines:
 Score fusion supports both Reciprocal Rank Fusion (RRF) and weighted-sum
 fusion over min-max normalized per-channel scores.
 
-This is the core of the CHRONICLE method (reported as CHRONICLE), built on the
+This is the core of the ChronicleMem method (reported as ChronicleMem), built on the
 ATM-Bench benchmark. See the top-level README for the full contribution map.
 """
 
