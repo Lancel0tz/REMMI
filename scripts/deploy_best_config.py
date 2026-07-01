@@ -29,7 +29,7 @@ def deploy_config(config_path: Path, output_path: Path):
         "best_config": best_params,
         "usage_example": {
             "python": """
-from chronicle import HybridRetriever, HybridScoringConfig
+from remmi import HybridRetriever, HybridScoringConfig
 import json
 
 # Load deployed config

@@ -10,7 +10,7 @@ from tqdm import tqdm
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from chronicle import HybridRetriever, HybridScoringConfig
+from remmi import HybridRetriever, HybridScoringConfig
 from memqa.retrieve.utils import (
     EmailTextConfig, MediaTextConfig,
     build_retrieval_items, extract_evidence_ids, load_json

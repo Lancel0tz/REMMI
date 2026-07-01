@@ -3,11 +3,11 @@
 Runs the synthetic 5-item corpus (no GPU, no network) so a supervisor can
 see channel behavior at a glance:
 
-    python -m chronicle.demo_cli
+    python -m remmi.demo_cli
 
 To try a custom query:
 
-    python -m chronicle.demo_cli "Where did I have ramen in Tokyo?"
+    python -m remmi.demo_cli "Where did I have ramen in Tokyo?"
 
 A real ATM-Bench run still goes through `mmrag_retrieve_answer.py`; the
 hybrid retriever will be wired into that script as a new `--retriever
@@ -19,8 +19,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from chronicle import HybridRetriever, HybridScoringConfig
-from chronicle.hybrid_retriever import (
+from remmi import HybridRetriever, HybridScoringConfig
+from remmi.hybrid_retriever import (
     build_synthetic_items,
     parse_query_constraints,
 )

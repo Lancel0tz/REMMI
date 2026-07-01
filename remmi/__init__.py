@@ -9,17 +9,17 @@ Implements a `HybridRetriever` that combines:
 Score fusion supports both Reciprocal Rank Fusion (RRF) and weighted-sum
 fusion over min-max normalized per-channel scores.
 
-This is the core of the ChronicleMem method (reported as ChronicleMem), built on the
+This is the core of the REMMI method (reported as REMMI), built on the
 ATM-Bench benchmark. See the top-level README for the full contribution map.
 """
 
-from chronicle.hybrid_retriever import (
+from remmi.hybrid_retriever import (
     HybridRetriever,
     HybridScoringConfig,
     QueryConstraints,
     parse_query_constraints,
 )
-from chronicle.routing_retriever import (
+from remmi.routing_retriever import (
     RoutingRetriever,
     RoutingConfig,
     ConfidenceConfig,

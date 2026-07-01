@@ -1,9 +1,9 @@
 # Repo Structure
 
-ChronicleMem is organized around:
+REMMI is organized around:
 
-- `chronicle/`: the ChronicleMem method — hybrid + query-adaptive routing retrieval (our contribution)
-- `config/`: frozen best routing/fusion configs used to reproduce the ChronicleMem results
+- `remmi/`: the REMMI method — hybrid + query-adaptive routing retrieval (our contribution)
+- `config/`: frozen best routing/fusion configs used to reproduce the REMMI results
 - `experiments/`: exploratory sweeps/optimizers that produced the configs (not needed to reproduce)
 - `memqa/`: ATM-Bench core library (processors, retrieval, baselines, evaluation), inherited from upstream plus our Qwen3-VL retriever and reranker additions
 - `agent_systems/`: general-purpose agent benchmark harness
@@ -11,14 +11,14 @@ ChronicleMem is organized around:
 - `data/`: local inputs (gitignored)
 - `output/`: generated artifacts/results (gitignored)
 
-See the top-level [README](../README.md#-whats-new-in-chronicle) for the full
-contribution map (what ChronicleMem adds on top of ATM-Bench).
+See the top-level [README](../README.md#whats-new) for the full
+contribution map (what REMMI adds on top of ATM-Bench).
 
 ## Key Directories
 
-### `chronicle/`
+### `remmi/`
 
-The ChronicleMem method package (imported as `from chronicle import ...`):
+The REMMI method package (imported as `from remmi import ...`):
 - `hybrid_retriever.py`: metadata + BM25 + dense hybrid retrieval with RRF / weighted-sum fusion
 - `routing_retriever.py`: query-adaptive channel routing (`RoutingRetriever`, standard + `-Hard` weight profiles)
 - `llm_router.py`: LLM-driven route selection

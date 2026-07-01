@@ -1,11 +1,11 @@
 # Experiments — research scaffolding
 
-This directory holds the exploratory scripts used while developing **ChronicleMem**
+This directory holds the exploratory scripts used while developing **REMMI**
 (hyperparameter sweeps, routing-weight optimizers, recall ablations, retriever
 comparisons, cluster launch scripts).
 
 > **These are provided for transparency, not for reproduction.** You do **not**
-> need anything in here to reproduce the headline ChronicleMem results — those run
+> need anything in here to reproduce the headline REMMI results — those run
 > from the pinned config in [`config/`](../config) via the commands in the main
 > [README](../README.md#-reproduce). The scripts here are kept as-is: they may
 > reference machine-specific paths, SLURM partitions, or intermediate artifacts
@@ -20,6 +20,6 @@ comparisons, cluster launch scripts).
 
 ## Provenance
 
-Everything here imports the ChronicleMem method package the same way the production
-scripts do (`from chronicle import ...`), so it runs from the repo root against the
+Everything here imports the REMMI method package the same way the production
+scripts do (`from remmi import ...`), so it runs from the repo root against the
 same code path — it is simply not part of the curated reproduce flow.

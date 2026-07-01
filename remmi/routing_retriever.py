@@ -53,7 +53,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence, Tupl
 
 import numpy as np
 
-from chronicle.hybrid_retriever import (
+from remmi.hybrid_retriever import (
     HybridRetriever,
     HybridScoringConfig,
     QueryConstraints,
@@ -67,7 +67,7 @@ from chronicle.hybrid_retriever import (
 try:
     from memqa.retrieve.utils import RetrievalItem
 except Exception:  # pragma: no cover
-    from chronicle._retrieval_item import RetrievalItem  # type: ignore
+    from remmi._retrieval_item import RetrievalItem  # type: ignore
 
 
 # ──────────────────────────────────────────────────────────────────────

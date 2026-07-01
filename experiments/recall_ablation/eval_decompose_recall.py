@@ -23,8 +23,8 @@ from tqdm import tqdm
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from chronicle import HybridRetriever, HybridScoringConfig
-from chronicle.query_decomposer import QueryDecomposer
+from remmi import HybridRetriever, HybridScoringConfig
+from remmi.query_decomposer import QueryDecomposer
 from memqa.retrieve.utils import (
     EmailTextConfig, MediaTextConfig, build_retrieval_items,
     extract_evidence_ids, load_json,

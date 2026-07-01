@@ -9,7 +9,7 @@ These tests run on CPU in seconds. They use the synthetic corpus from
 
 Run with:
 
-    python -m unittest chronicle.test_hybrid_retriever -v
+    python -m unittest remmi.test_hybrid_retriever -v
 
 These are intended as developer smoke tests, not the full benchmark.
 """
@@ -21,12 +21,12 @@ from datetime import date
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from chronicle import (
+from remmi import (
     HybridRetriever,
     HybridScoringConfig,
     parse_query_constraints,
 )
-from chronicle.hybrid_retriever import build_synthetic_items
+from remmi.hybrid_retriever import build_synthetic_items
 
 
 class TestQueryConstraints(unittest.TestCase):

@@ -27,7 +27,7 @@ script_path = Path(__file__).resolve()
 ROOT = script_path.parents[1]  # parents[1] = ATM-Bench (scripts is at ATM-Bench/scripts)
 sys.path.insert(0, str(ROOT))
 
-from chronicle import HybridRetriever, HybridScoringConfig
+from remmi import HybridRetriever, HybridScoringConfig
 from memqa.retrieve.utils import (
     RetrievalItem,
     EmailTextConfig,
