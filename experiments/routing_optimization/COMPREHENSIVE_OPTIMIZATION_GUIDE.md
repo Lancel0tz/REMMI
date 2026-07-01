@@ -229,7 +229,7 @@ with open('output/comprehensive_opt/optimization_summary.json') as f:
     best_params = json.load(f)['best_params']
 
 # 2. 创建自定义策略
-from memqa.extensions.hybrid import AdaptiveWeights
+from ltma import AdaptiveWeights
 
 def get_best_weights(query: str) -> AdaptiveWeights:
     return AdaptiveWeights(

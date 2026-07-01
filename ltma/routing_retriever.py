@@ -53,7 +53,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence, Tupl
 
 import numpy as np
 
-from memqa.extensions.hybrid.hybrid_retriever import (
+from ltma.hybrid_retriever import (
     HybridRetriever,
     HybridScoringConfig,
     QueryConstraints,
@@ -67,7 +67,7 @@ from memqa.extensions.hybrid.hybrid_retriever import (
 try:
     from memqa.retrieve.utils import RetrievalItem
 except Exception:  # pragma: no cover
-    from memqa.extensions.hybrid._retrieval_item import RetrievalItem  # type: ignore
+    from ltma._retrieval_item import RetrievalItem  # type: ignore
 
 
 # ──────────────────────────────────────────────────────────────────────

@@ -45,7 +45,7 @@ except ImportError as exc:  # pragma: no cover - import guard
 try:
     from memqa.retrieve.utils import RetrievalItem  # noqa: F401  (re-exported)
 except Exception:  # pragma: no cover - sandbox fallback
-    from memqa.extensions.hybrid._retrieval_item import RetrievalItem  # type: ignore
+    from ltma._retrieval_item import RetrievalItem  # type: ignore
 
 # We deliberately do NOT import `BaseRetriever` from
 # `memqa.retrieve.retrievers` because that module imports torch unconditionally.

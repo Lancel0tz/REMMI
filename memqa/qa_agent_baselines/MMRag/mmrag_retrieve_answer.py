@@ -49,7 +49,7 @@ from memqa.retrieve.retrievers import (
     TextRetriever,
     VistaRetriever,
 )
-from memqa.extensions.hybrid import HybridRetriever, HybridScoringConfig
+from ltma import HybridRetriever, HybridScoringConfig
 
 VL_RETRIEVERS = {"qwen3_vl_embedding", "qwen3_vl_dual_embedding", "vista", "clip"}
 

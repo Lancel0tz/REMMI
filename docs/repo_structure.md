@@ -1,13 +1,29 @@
 # Repo Structure
 
-ATMBench is organized around:
+LTMA is organized around:
 
-- `memqa/`: core library (processors, retrieval, baselines, evaluation)
-- `scripts/`: runnable workflows (bash + small utilities)
+- `ltma/`: the LTMA method — hybrid + query-adaptive routing retrieval (our contribution)
+- `config/`: frozen best routing/fusion configs used to reproduce the ATM-RAG results
+- `experiments/`: exploratory sweeps/optimizers that produced the configs (not needed to reproduce)
+- `memqa/`: ATM-Bench core library (processors, retrieval, baselines, evaluation), inherited from upstream plus our Qwen3-VL retriever and reranker additions
+- `agent_systems/`: general-purpose agent benchmark harness
+- `scripts/`: runnable workflows (data download, run, eval)
 - `data/`: local inputs (gitignored)
 - `output/`: generated artifacts/results (gitignored)
 
+See the top-level [README](../README.md#-whats-new-in-ltma) for the full
+contribution map (what LTMA adds on top of ATM-Bench).
+
 ## Key Directories
+
+### `ltma/`
+
+The LTMA method package (imported as `from ltma import ...`):
+- `hybrid_retriever.py`: metadata + BM25 + dense hybrid retrieval with RRF / weighted-sum fusion
+- `routing_retriever.py`: query-adaptive channel routing (`RoutingRetriever`, standard + `-Hard` weight profiles)
+- `llm_router.py`: LLM-driven route selection
+- `query_decomposer.py`: multi-evidence query decomposition
+- `demo_cli.py` / `test_hybrid_retriever.py`: CPU-only demo and smoke tests
 
 ### `memqa/mem_processor/`
 
