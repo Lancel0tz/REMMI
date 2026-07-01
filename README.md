@@ -1,8 +1,8 @@
 <div align="center">
 
-# CHRONICLE — Hybrid Adaptive-Routing Retrieval for Long-Term Personal Memory QA
+# CHRONICLE — A Long-Term Personal Memory System
 
-**A hybrid, query-adaptive multimodal RAG method for long-term personalized referential memory QA, built on and evaluated with [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench).**
+**Built on and evaluated with [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench). Hybrid, query-adaptive retrieval now; chronological event-based memory organization on the roadmap.**
 
 [🇬🇧 English](README.md) • [🇨🇳 中文](README_zh.md)
 
@@ -29,6 +29,7 @@
 ## 📋 Table of Contents
 
 - [✨ What's New in CHRONICLE](#-whats-new-in-chronicle)
+- [🗺️ Roadmap](#-roadmap)
 - [🧩 Method](#-method)
 - [📊 Results](#-results)
 - [🔁 Reproduce](#-reproduce)
@@ -59,6 +60,19 @@ The exploratory search/sweep code that *produced* the frozen configs (grid /
 Bayesian / meta-strategy optimizers, recall ablations, retriever comparisons)
 lives under [`experiments/`](experiments/README.md) and is **not** required to
 reproduce the headline numbers.
+
+<a id="roadmap"></a>
+## 🗺️ Roadmap
+
+CHRONICLE is developed incrementally. **Implemented today** is the retrieval
+side — hybrid, query-adaptive routing over SGM memory ([`chronicle/`](chronicle/)).
+**Next** is the organization side, which the name points at:
+
+- **Event-based memory organization** — grouping long-term memory into events/episodes.
+- **Hierarchical retrieval** over that event structure.
+- **Memory linkage** — inferred relations across memory items.
+
+These are not in the codebase yet; this section states intent, not current capability.
 
 <a id="method"></a>
 ## 🧩 Method
