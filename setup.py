@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Setup script for ChronicleMem."""
+"""Setup script for REMMI."""
 
 from setuptools import find_packages, setup
 import os
@@ -10,7 +10,7 @@ def read_readme() -> str:
     if os.path.exists(readme_path):
         with open(readme_path, "r", encoding="utf-8") as f:
             return f.read()
-    return "ChronicleMem"
+    return "REMMI"
 
 
 def read_requirements():
@@ -26,9 +26,9 @@ def read_requirements():
 
 
 setup(
-    name="chronicle-mem",
+    name="remmi",
     version="0.1.0",
-    description="ChronicleMem: hybrid adaptive-routing retrieval for long-term personalized memory QA, built on ATM-Bench",
+    description="REMMI: hybrid adaptive-routing retrieval for long-term personalized memory QA, built on ATM-Bench",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
     author="Kuanyan Zhu",

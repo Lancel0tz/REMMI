@@ -1,8 +1,8 @@
 <div align="center">
 
-# ChronicleMem — A Long-Term Personal Memory System
+# REMMI — Reassembling Episodic and Multimodal Memories for Inquiry
 
-**Built on and evaluated with [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench). Hybrid, query-adaptive retrieval now; chronological event-based memory organization on the roadmap.**
+**A long-term personal memory system, built on and evaluated with [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench). Hybrid, query-adaptive retrieval now; episodic, event-based memory organization on the roadmap.**
 
 [🇬🇧 English](README.md) • [🇨🇳 中文](README_zh.md)
 
@@ -18,17 +18,17 @@
 
 </div>
 
-> **ChronicleMem** is incremental work on top of the **ATM-Bench** benchmark. It does not
+> **REMMI** is incremental work on top of the **ATM-Bench** benchmark. It does not
 > re-release the benchmark; it contributes a retrieval method and the code to
-> reproduce it (the `ChronicleMem (Ours)` row in the results below). The benchmark,
-> dataset, task definition, and the baselines ChronicleMem compares against are the work
+> reproduce it (the `REMMI (Ours)` row in the results below). The benchmark,
+> dataset, task definition, and the baselines REMMI compares against are the work
 > of the ATM-Bench authors — see [Attribution](#-attribution--upstream).
 
 ---
 
 ## 📋 Table of Contents
 
-- [✨ What's New in ChronicleMem](#whats-new)
+- [✨ What's New in REMMI](#whats-new)
 - [🗺️ Roadmap](#-roadmap)
 - [🧩 Method](#-method)
 - [📊 Results](#-results)
@@ -39,18 +39,18 @@
 - [📝 License](#-license)
 
 <a id="whats-new"></a>
-## ✨ What's New in ChronicleMem
+## ✨ What's New in REMMI
 
-Everything below is added by ChronicleMem on top of upstream ATM-Bench. The core method
-lives in a single top-level package, [`chronicle/`](chronicle/), so the contribution
+Everything below is added by REMMI on top of upstream ATM-Bench. The core method
+lives in a single top-level package, [`remmi/`](remmi/), so the contribution
 boundary is explicit.
 
 | Contribution | Where | Notes |
 |--------------|-------|-------|
-| **Hybrid retriever** — metadata filtering + BM25 sparse + dense, fused via RRF or weighted-sum | [`chronicle/hybrid_retriever.py`](chronicle/hybrid_retriever.py) | Pluggable dense channel; CPU-testable without torch |
-| **Query-adaptive routing** — per-query signal analysis → adaptive channel weights (easy/hard variants) | [`chronicle/routing_retriever.py`](chronicle/routing_retriever.py) | `RoutingRetriever`, `adaptive_weights`, `adaptive_weights_hard` |
-| **LLM router** — LLM-driven route selection over retrieval channels | [`chronicle/llm_router.py`](chronicle/llm_router.py) | |
-| **Query decomposition** — splits multi-evidence queries into sub-queries | [`chronicle/query_decomposer.py`](chronicle/query_decomposer.py) | |
+| **Hybrid retriever** — metadata filtering + BM25 sparse + dense, fused via RRF or weighted-sum | [`remmi/hybrid_retriever.py`](remmi/hybrid_retriever.py) | Pluggable dense channel; CPU-testable without torch |
+| **Query-adaptive routing** — per-query signal analysis → adaptive channel weights (easy/hard variants) | [`remmi/routing_retriever.py`](remmi/routing_retriever.py) | `RoutingRetriever`, `adaptive_weights`, `adaptive_weights_hard` |
+| **LLM router** — LLM-driven route selection over retrieval channels | [`remmi/llm_router.py`](remmi/llm_router.py) | |
+| **Query decomposition** — splits multi-evidence queries into sub-queries | [`remmi/query_decomposer.py`](remmi/query_decomposer.py) | |
 | **Qwen3-VL dual-encoder retriever** for MMRAG dense retrieval | [`memqa/retrieve/retrievers.py`](memqa/retrieve/retrievers.py) | Added alongside upstream retrievers |
 | **Qwen3-Reranker fix** | [`memqa/retrieve/rerankers.py`](memqa/retrieve/rerankers.py) | |
 | **Frozen best configs** from Bayesian optimization | [`config/best_routing_config.json`](config/best_routing_config.json), [`config/best_routing_config_hard.json`](config/best_routing_config_hard.json) | The numbers below reproduce from these |
@@ -64,9 +64,9 @@ reproduce the headline numbers.
 <a id="roadmap"></a>
 ## 🗺️ Roadmap
 
-ChronicleMem is developed incrementally. **Implemented today** is the retrieval
-side — hybrid, query-adaptive routing over SGM memory ([`chronicle/`](chronicle/)).
-**Next** is the organization side, which the name points at:
+REMMI is developed incrementally. **Implemented today** is the retrieval
+side — hybrid, query-adaptive routing over SGM memory ([`remmi/`](remmi/)).
+**Next** is the organization side — the *Episodic* in REMMI:
 
 - **Event-based memory organization** — grouping long-term memory into events/episodes.
 - **Hierarchical retrieval** over that event structure.
@@ -77,7 +77,7 @@ These are not in the codebase yet; this section states intent, not current capab
 <a id="method"></a>
 ## 🧩 Method
 
-ChronicleMem retrieves over ATM-Bench's Schema-Guided Memory (SGM) items with a hybrid,
+REMMI retrieves over ATM-Bench's Schema-Guided Memory (SGM) items with a hybrid,
 query-adaptive pipeline:
 
 1. **Four retrieval channels**
@@ -105,7 +105,7 @@ The frozen operating point lives in [`config/`](config). With the fixed
 > 🏆 The authoritative, up-to-date numbers live on the
 > [ATM-Bench Live Leaderboard](https://atmbench.github.io/leaderboard.html).
 
-ChronicleMem's retrieval stage sets a **new SOTA among Memory & RAG systems** on
+REMMI's retrieval stage sets a **new SOTA among Memory & RAG systems** on
 ATM-Bench, under a *fixed* `Qwen3-VL-8B-Instruct` answerer — so any QS gap is
 attributable to retrieval, not the language model. It is **#1 on both QS and
 Recall@10, on both splits**: Standard **60.3** QS / **83.3** R@10, Hard **19.2**
@@ -115,7 +115,7 @@ QS / **42.0** R@10.
 
 | # | System | Type | QS ↑ | R@10 ↑ |
 |--:|--------|:----:|-----:|-------:|
-| **1** | **ChronicleMem (Ours)** · hybrid retrieval | RAG | **60.3** | **83.3** |
+| **1** | **REMMI (Ours)** · hybrid retrieval | RAG | **60.3** | **83.3** |
 | 2 | [MemPalace](https://github.com/MemPalace/mempalace) | Memory | 56.8 | 76.4 |
 | 3 | ScrapMem (No-Forget) | Memory | 52.5 | 70.3 |
 | 4 | [ATM-RAG](https://github.com/JingbiaoMei/ATM-Bench) · upstream | RAG | 51.0 | 68.7 |
@@ -128,7 +128,7 @@ QS / **42.0** R@10.
 
 | # | System | Type | QS ↑ | R@10 ↑ |
 |--:|--------|:----:|-----:|-------:|
-| **1** | **ChronicleMem (Ours)** · hybrid retrieval | RAG | **19.2** | **42.0** |
+| **1** | **REMMI (Ours)** · hybrid retrieval | RAG | **19.2** | **42.0** |
 | 2 | [ATM-RAG](https://github.com/JingbiaoMei/ATM-Bench) · upstream | RAG | 13.8 | 30.4 |
 | 3 | [MemoryOS](https://github.com/BAI-LAB/MemoryOS) | Memory | 13.7 | 32.7 |
 | 4 | [A-Mem](https://github.com/WujiangXu/A-mem) | Memory | 9.9 | 31.7 |
@@ -137,7 +137,7 @@ QS / **42.0** R@10.
 | 7 | [mem0](https://github.com/mem0ai/mem0) | Memory | 9.2 | 23.7 |
 | — | *Oracle ceiling (Qwen3-VL-8B)* | — | *40.1* | — |
 
-On Hard, ChronicleMem beats the best prior by **+5.4 QS** (over ATM-RAG 13.8) and
+On Hard, REMMI beats the best prior by **+5.4 QS** (over ATM-RAG 13.8) and
 **+9.3 R@10** (over MemoryOS 32.7); retrieval alone lifts Hard QS from **8.4 → 19.2**.
 
 **Ablation** (Recall@10; each component earns its place)
@@ -153,7 +153,7 @@ On Hard, ChronicleMem beats the best prior by **+5.4 QS** (over ATM-RAG 13.8) an
 | + Cross-encoder reranker (Qwen3-Reranker-4B) | **42.0** | **83.3** |
 
 *Rows 2–5 remove one channel from the full 4-channel RRF (row 1); the bottom two
-add pipeline stages on top. The last row is ChronicleMem's full config.*
+add pipeline stages on top. The last row is REMMI's full config.*
 
 > **Status.** Only the **retrieval stage** is evaluated so far — ingestion, memory
 > organization, and the answerer are all unchanged. Even with strong retrieval,
@@ -166,8 +166,8 @@ add pipeline stages on top. The last row is ChronicleMem's full config.*
 ### 1. Install
 
 ```bash
-conda create -n chronicle python=3.11 -y
-conda activate chronicle
+conda create -n remmi python=3.11 -y
+conda activate remmi
 pip install -r requirements.txt
 pip install -e .
 ```
@@ -196,7 +196,7 @@ export OPENAI_API_KEY="your-key"     # or api_keys/.openai_key
 export VLLM_API_KEY="your-key"       # or api_keys/.vllm_key
 ```
 
-### 4. Run ChronicleMem
+### 4. Run REMMI
 
 Needs a vLLM endpoint serving `Qwen/Qwen3-VL-8B-Instruct-FP8` at
 `http://127.0.0.1:8000/v1/...` (override with `VLLM_ENDPOINT` / `ANSWERER_MODEL`).
@@ -214,16 +214,16 @@ evaluate Recall@k on CPU without an answerer endpoint. See
 ### Smoke test the method (CPU, no data/models)
 
 ```bash
-python -m unittest chronicle.test_hybrid_retriever -v
-python -m chronicle.demo_cli "Where did I have ramen in Tokyo?"
+python -m unittest remmi.test_hybrid_retriever -v
+python -m remmi.demo_cli "Where did I have ramen in Tokyo?"
 ```
 
 <a id="repository-structure"></a>
 ## 📁 Repository Structure
 
 ```
-ChronicleMem/
-├── chronicle/               # ★ ChronicleMem method: hybrid + adaptive-routing retrieval
+REMMI/
+├── remmi/               # ★ REMMI method: hybrid + adaptive-routing retrieval
 ├── config/             # Frozen best routing/fusion configs (reproduce these)
 ├── experiments/        # Research scaffolding (sweeps/optimizers) — not needed to reproduce
 ├── memqa/              # ATM-Bench core (baselines, retrievers, evaluation) + our retriever/reranker additions
@@ -238,7 +238,7 @@ ChronicleMem/
 <a id="attribution--upstream"></a>
 ## 🙏 Attribution & Upstream
 
-ChronicleMem is built on **ATM-Bench** and inherits its benchmark, dataset, task, core
+REMMI is built on **ATM-Bench** and inherits its benchmark, dataset, task, core
 `memqa/` code, and all comparison baselines.
 
 - **Upstream:** [`JingbiaoMei/ATM-Bench`](https://github.com/JingbiaoMei/ATM-Bench)
@@ -253,7 +253,7 @@ Vendored / ported baselines keep their own upstream licenses and pinned commits
 <a id="citation"></a>
 ## 📖 Citation
 
-If you use ChronicleMem, please also cite the ATM-Bench benchmark it is built on:
+If you use REMMI, please also cite the ATM-Bench benchmark it is built on:
 
 ```bibtex
 @article{mei2026atm,
@@ -266,9 +266,9 @@ If you use ChronicleMem, please also cite the ATM-Bench benchmark it is built on
 }
 ```
 
-<!-- TODO: add the ChronicleMem citation once your paper is public.
-@article{zhu2026chronicle,
-  title={<ChronicleMem paper title>},
+<!-- TODO: add the REMMI citation once your paper is public.
+@article{zhu2026remmi,
+  title={<REMMI paper title>},
   author={Zhu, Kuanyan and ...},
   year={2026}
 }

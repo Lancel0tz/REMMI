@@ -243,6 +243,6 @@ while True:
 
 ## References
 
-- Original routing implementation: `chronicle/routing_retriever.py`
+- Original routing implementation: `remmi/routing_retriever.py`
 - Baseline comparison: `output/QA_Agent/MMRAG/main_table/`
 - Paper: See project proposal for technical details

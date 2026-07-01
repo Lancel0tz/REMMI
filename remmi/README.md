@@ -1,8 +1,8 @@
-# `chronicle` — ChronicleMem method package
+# `remmi` — REMMI method package
 
-This package is the ChronicleMem contribution on top of [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench):
+This package is the REMMI contribution on top of [ATM-Bench](https://github.com/JingbiaoMei/ATM-Bench):
 a hybrid, query-adaptive retrieval method for long-term personalized memory QA
-(the `ChronicleMem (Ours)` row in the top-level [README](../README.md#-results)).
+(the `REMMI (Ours)` row in the top-level [README](../README.md#-results)).
 
 It sits *alongside* the upstream baselines under `memqa/qa_agent_baselines/` and
 plugs into the existing MMRAG pipeline, so the upstream code path is unchanged.
@@ -10,14 +10,14 @@ plugs into the existing MMRAG pipeline, so the upstream code path is unchanged.
 ## Layout
 
 ```
-chronicle/
+remmi/
 ├── __init__.py
 ├── hybrid_retriever.py       # HybridRetriever: metadata + BM25 + dense, RRF / weighted-sum fusion
 ├── routing_retriever.py      # RoutingRetriever: per-query adaptive channel weights (standard + -Hard)
 ├── llm_router.py             # LLM-driven route selection
 ├── query_decomposer.py       # multi-evidence query decomposition
 ├── _retrieval_item.py        # torch-free RetrievalItem shim (CPU sandbox fallback)
-├── demo_cli.py               # python -m chronicle.demo_cli
+├── demo_cli.py               # python -m remmi.demo_cli
 └── test_hybrid_retriever.py  # unittest smoke tests (CPU-only)
 ```
 
@@ -45,9 +45,9 @@ frozen operating point lives in [`config/best_routing_config*.json`](../config).
 ## Try it (CPU, no data/models)
 
 ```bash
-python -m unittest chronicle.test_hybrid_retriever -v
-python -m chronicle.demo_cli
-python -m chronicle.demo_cli "Where did I have ramen in Tokyo?"
+python -m unittest remmi.test_hybrid_retriever -v
+python -m remmi.demo_cli
+python -m remmi.demo_cli "Where did I have ramen in Tokyo?"
 ```
 
 ## No torch import here
