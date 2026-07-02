@@ -28,7 +28,7 @@ def read_requirements():
 setup(
     name="remmi",
     version="0.1.0",
-    description="REMMI: hybrid adaptive-routing retrieval for long-term personalized memory QA, built on ATM-Bench",
+    description="Reassembling Episodic and Multimodal Memories for Inquiry — a long-term personal memory system for multimodal QA, built on ATM-Bench",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
     author="Kuanyan Zhu",
