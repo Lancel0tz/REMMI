@@ -106,6 +106,9 @@ agsys_normalize_memory_mode() {
     orgx|organized_hybrid)
       mode="org_hybrid"
       ;;
+    orgr|organized_remmi)
+      mode="org_remmi"
+      ;;
   esac
   echo "${mode}"
 }
@@ -131,6 +134,9 @@ agsys_memory_tag_suffix() {
       ;;
     org_hybrid)
       echo "orgx"
+      ;;
+    org_remmi)
+      echo "orgr"
       ;;
     *)
       echo ""

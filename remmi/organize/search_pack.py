@@ -1,0 +1,62 @@
+"""Build the compact search corpus consumed by the in-sandbox search tool.
+
+This is the projection layer of "REMMI retrieval as an agent tool": every
+memory item (image / video / email) becomes one compact searchable record
+
+    {"id", "type", "ts", "city", "text"}
+
+where ``text`` concatenates the sparse-channel fields REMMI's hybrid retriever
+uses (short_caption, tags, entities, location) — small enough to ship into the
+per-question sandbox (~2 MB vs 29 MB raw SGM), rich enough for BM25 shortlists.
+The dense / vision channels of the full REMMI retriever need model weights and
+are intentionally excluded from the sandbox tool.
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+from remmi.organize.heuristic import _clean_city, _stem
+
+
+def _media_record(record: dict[str, Any], path_key: str, kind: str) -> dict[str, Any]:
+    parts = [
+        str(record.get("short_caption") or ""),
+        " ".join(str(t) for t in record.get("tags") or []),
+        " ".join(str(e) for e in record.get("entities") or []),
+        str(record.get("location_name") or ""),
+    ]
+    return {
+        "id": _stem(record.get(path_key, "")),
+        "type": kind,
+        "ts": str(record.get("timestamp") or "")[:16],
+        "city": _clean_city(record.get("city")),
+        "text": " ".join(p for p in parts if p).strip(),
+    }
+
+
+def _email_record(record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": str(record.get("id") or ""),
+        "type": "email",
+        "ts": str(record.get("timestamp") or "")[:16],
+        "city": "",
+        "text": str(record.get("short_summary") or "").strip(),
+    }
+
+
+def build_search_corpus(
+    image_source: Path,
+    video_source: Path,
+    emails_source: Path,
+) -> list[dict[str, Any]]:
+    corpus: list[dict[str, Any]] = []
+    with open(image_source, "r", encoding="utf-8") as handle:
+        corpus.extend(_media_record(r, "image_path", "image") for r in json.load(handle))
+    with open(video_source, "r", encoding="utf-8") as handle:
+        corpus.extend(_media_record(r, "video_path", "video") for r in json.load(handle))
+    with open(emails_source, "r", encoding="utf-8") as handle:
+        corpus.extend(_email_record(r) for r in json.load(handle))
+    return [c for c in corpus if c["id"]]

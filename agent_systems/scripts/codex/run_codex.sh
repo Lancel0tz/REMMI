@@ -72,6 +72,8 @@ cp "${AGSYS_EVAL_ROOT}/memory/video_metadata.json" "${MEMORY_CACHE_DIR}/video_me
 cp "${AGSYS_EVAL_ROOT}/memory/emails.json" "${MEMORY_CACHE_DIR}/emails.json"
 cp "${AGSYS_EVAL_ROOT}/memory/memory_variant.json" "${MEMORY_CACHE_DIR}/memory_variant.json" 2>/dev/null || true
 cp "${AGSYS_EVAL_ROOT}/memory/organized_memory.json" "${MEMORY_CACHE_DIR}/organized_memory.json" 2>/dev/null || true
+cp "${AGSYS_EVAL_ROOT}/memory/search_corpus.json" "${MEMORY_CACHE_DIR}/search_corpus.json" 2>/dev/null || true
+cp "${AGSYS_EVAL_ROOT}/memory/search.py" "${MEMORY_CACHE_DIR}/search.py" 2>/dev/null || true
 
 cleanup() {
   rm -rf "${SESSION_TMP_ROOT}"
@@ -129,6 +131,10 @@ while IFS= read -r QID; do
   fi
   if [[ -f "${MEMORY_CACHE_DIR}/organized_memory.json" ]]; then
     cp "${MEMORY_CACHE_DIR}/organized_memory.json" "${WORKSPACE_DIR}/memory/organized_memory.json"
+  fi
+  if [[ -f "${MEMORY_CACHE_DIR}/search_corpus.json" ]]; then
+    cp "${MEMORY_CACHE_DIR}/search_corpus.json" "${WORKSPACE_DIR}/memory/search_corpus.json"
+    cp "${MEMORY_CACHE_DIR}/search.py" "${WORKSPACE_DIR}/memory/search.py"
   fi
   if [[ "${MEMORY_MODE}" == "raw" ]]; then
     mkdir -p "${WORKSPACE_DIR}/memory/raw_images" "${WORKSPACE_DIR}/memory/raw_videos"
