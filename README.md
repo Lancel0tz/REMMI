@@ -64,15 +64,21 @@ reproduce the headline numbers.
 <a id="roadmap"></a>
 ## 🗺️ Roadmap
 
-REMMI is developed incrementally. **Implemented today** is the retrieval
+REMMI is developed incrementally. **Implemented and evaluated** is the retrieval
 side — hybrid, query-adaptive routing over SGM memory ([`remmi/`](remmi/)).
-**Next** is the organization side — the *Episodic* in REMMI:
 
-- **Event-based memory organization** — grouping long-term memory into events/episodes.
-- **Hierarchical retrieval** over that event structure.
+**In exploration (experimental, not yet in the headline results)** is the
+organization side — the *Episodic* in REMMI. Three strategies are implemented
+under [`remmi/organize/`](remmi/organize/) +
+[`experiments/memory_organization/`](experiments/memory_organization/README.md):
+dynamic per-question organisation by the answering agent, static full-corpus
+agent organisation, and heuristic day-gap event/trip clustering.
+
+**Next:**
+
+- Evaluated event-based organization results on the leaderboard splits.
+- **Hierarchical retrieval** over the event structure.
 - **Memory linkage** — inferred relations across memory items.
-
-These are not in the codebase yet; this section states intent, not current capability.
 
 <a id="method"></a>
 ## 🧩 Method

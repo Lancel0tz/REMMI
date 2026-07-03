@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-VALID_MEMORY_MODES = ("sgm", "raw", "descriptive")
+VALID_MEMORY_MODES = ("sgm", "raw", "descriptive", "org_heuristic", "org_static", "org_dynamic")
 
 
 def normalize_memory_mode(mode: str) -> str:
@@ -24,6 +24,12 @@ def normalize_memory_mode(mode: str) -> str:
         "descriptive_memory": "descriptive",
         "raw_entries": "raw",
         "raw_media": "raw",
+        "orgh": "org_heuristic",
+        "organized_heuristic": "org_heuristic",
+        "orgs": "org_static",
+        "organized_static": "org_static",
+        "orgd": "org_dynamic",
+        "organized_dynamic": "org_dynamic",
     }
     normalized = aliases.get(normalized, normalized)
     if normalized not in VALID_MEMORY_MODES:
@@ -120,6 +126,53 @@ def hardlink_media_files(
     }
 
 
+def build_organized_index(
+    *,
+    mode: str,
+    image_source: Path,
+    video_source: Path,
+    emails_source: Path,
+    out_dir: Path,
+    organized_source: Path | None,
+) -> dict[str, Any]:
+    """Write ``organized_memory.json`` next to the SGM files.
+
+    - ``org_heuristic`` builds the event index deterministically via
+      ``remmi.organize.heuristic`` (no LLM calls).
+    - ``org_static`` consumes a prebuilt index (produced offline by
+      ``python -m remmi.organize.agent_static``), passed via
+      ``--organized-source`` / ``AGSYS_ORGANIZED_MEMORY``.
+    """
+    if mode == "org_heuristic":
+        import sys
+
+        repo_root = str(Path(__file__).resolve().parent.parent)
+        if repo_root not in sys.path:
+            sys.path.insert(0, repo_root)
+        from remmi.organize.heuristic import build_organized_memory
+
+        payload = build_organized_memory(image_source, video_source, emails_source)
+        dump_json(out_dir / "organized_memory.json", payload)
+    elif mode == "org_static":
+        if organized_source is None or not Path(organized_source).exists():
+            raise FileNotFoundError(
+                "org_static requires a prebuilt organized memory index. Generate one with "
+                "`python -m remmi.organize.agent_static ... --out <file>` and pass it via "
+                "--organized-source or AGSYS_ORGANIZED_MEMORY."
+            )
+        shutil.copy2(organized_source, out_dir / "organized_memory.json")
+        with open(out_dir / "organized_memory.json", "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    else:
+        raise AssertionError(f"Not an organized mode: {mode}")
+    return {
+        "organized_memory": "organized_memory.json",
+        "generated_by": payload.get("generated_by", ""),
+        "event_count": payload.get("event_count", 0),
+        "trip_count": payload.get("trip_count", 0),
+    }
+
+
 def build_memory_variant(
     *,
     mode: str,
@@ -129,6 +182,7 @@ def build_memory_variant(
     out_dir: Path,
     raw_image_dir: Path | None = None,
     raw_video_dir: Path | None = None,
+    organized_source: Path | None = None,
 ) -> dict[str, Any]:
     mode = normalize_memory_mode(mode)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -137,9 +191,21 @@ def build_memory_variant(
     video_records = load_json_list(video_source)
 
     media_manifest: dict[str, Any] = {}
-    if mode == "sgm":
+    if mode in ("sgm", "org_heuristic", "org_static", "org_dynamic"):
+        # Organized modes keep the full SGM per-item files (recall questions
+        # must still answer with exact item ids); org_heuristic/org_static add
+        # a compact event index on top, org_dynamic changes only the prompt.
         shutil.copy2(image_source, out_dir / "image_metadata.json")
         shutil.copy2(video_source, out_dir / "video_metadata.json")
+        if mode in ("org_heuristic", "org_static"):
+            media_manifest["organized"] = build_organized_index(
+                mode=mode,
+                image_source=image_source,
+                video_source=video_source,
+                emails_source=emails_source,
+                out_dir=out_dir,
+                organized_source=organized_source,
+            )
     elif mode == "raw":
         dump_json(out_dir / "image_metadata.json", raw_entries(image_records, "image_path", "raw_images"))
         dump_json(out_dir / "video_metadata.json", raw_entries(video_records, "video_path", "raw_videos"))
@@ -188,6 +254,12 @@ def main() -> None:
     parser.add_argument("--out-dir", required=True, type=Path)
     parser.add_argument("--raw-image-dir", type=Path)
     parser.add_argument("--raw-video-dir", type=Path)
+    parser.add_argument(
+        "--organized-source",
+        type=Path,
+        default=os.environ.get("AGSYS_ORGANIZED_MEMORY") and Path(os.environ["AGSYS_ORGANIZED_MEMORY"]),
+        help="Prebuilt organized_memory.json (required for org_static; from remmi.organize.agent_static)",
+    )
     args = parser.parse_args()
 
     manifest = build_memory_variant(
@@ -198,6 +270,7 @@ def main() -> None:
         out_dir=args.out_dir,
         raw_image_dir=args.raw_image_dir,
         raw_video_dir=args.raw_video_dir,
+        organized_source=args.organized_source,
     )
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
 

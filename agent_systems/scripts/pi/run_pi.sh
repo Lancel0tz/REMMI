@@ -150,6 +150,7 @@ cp "${AGSYS_EVAL_ROOT}/memory/image_metadata.json" "${MEMORY_CACHE_DIR}/image_me
 cp "${AGSYS_EVAL_ROOT}/memory/video_metadata.json" "${MEMORY_CACHE_DIR}/video_metadata.json"
 cp "${AGSYS_EVAL_ROOT}/memory/emails.json" "${MEMORY_CACHE_DIR}/emails.json"
 cp "${AGSYS_EVAL_ROOT}/memory/memory_variant.json" "${MEMORY_CACHE_DIR}/memory_variant.json" 2>/dev/null || true
+cp "${AGSYS_EVAL_ROOT}/memory/organized_memory.json" "${MEMORY_CACHE_DIR}/organized_memory.json" 2>/dev/null || true
 
 RAW_IMAGES_DIR="$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "${AGSYS_EVAL_ROOT}/memory/raw_images")"
 RAW_VIDEOS_DIR="$(python3 -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "${AGSYS_EVAL_ROOT}/memory/raw_videos")"
@@ -242,6 +243,9 @@ while IFS= read -r QID; do
   cp "${MEMORY_CACHE_DIR}/emails.json"         "${WORKSPACE_DIR}/memory/emails.json"
   if [[ -f "${MEMORY_CACHE_DIR}/memory_variant.json" ]]; then
     cp "${MEMORY_CACHE_DIR}/memory_variant.json" "${WORKSPACE_DIR}/memory/memory_variant.json"
+  fi
+  if [[ -f "${MEMORY_CACHE_DIR}/organized_memory.json" ]]; then
+    cp "${MEMORY_CACHE_DIR}/organized_memory.json" "${WORKSPACE_DIR}/memory/organized_memory.json"
   fi
   if [[ "${MEMORY_MODE}" == "raw" ]]; then
     if [[ "${SANDBOX_ACTIVE}" == "bwrap" ]]; then
