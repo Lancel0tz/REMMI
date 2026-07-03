@@ -140,8 +140,9 @@ while IFS= read -r QID; do
   CODEX_TMPDIR="$(mktemp -d "${AGSYS_EVAL_ROOT}/.codex-runtime/${MODEL_TAG}-${QID}-XXXXXXXX")"
   CODEX_HOME_DIR="${CODEX_TMPDIR}/home"
   mkdir -p "${CODEX_HOME_DIR}"
-  if [[ -f "${HOME}/.codex/auth.json" ]]; then
-    cp "${HOME}/.codex/auth.json" "${CODEX_HOME_DIR}/auth.json"
+  CODEX_AUTH_SOURCE="${AGSYS_CODEX_AUTH_JSON:-${HOME}/.codex/auth.json}"
+  if [[ -f "${CODEX_AUTH_SOURCE}" ]]; then
+    cp "${CODEX_AUTH_SOURCE}" "${CODEX_HOME_DIR}/auth.json"
   fi
   if ! python3 agent_systems/runtime_artifacts.py write-codex-config \
     --out "${CODEX_HOME_DIR}/config.toml" \
