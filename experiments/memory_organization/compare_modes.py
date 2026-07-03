@@ -71,7 +71,7 @@ def find_qs(model_tag: str, run_tag: str) -> tuple[float | None, dict[str, float
     for summary_path in sorted(eval_dir.glob("atm_*_summary.json")):
         summary = read_json(summary_path)
         flat = json.dumps(summary)
-        for key in ("overall_score", "atm_score", "average_score", "score", "qs"):
+        for key in ("accuracy", "overall_score", "atm_score", "average_score", "score", "qs"):
             value = summary.get(key)
             if isinstance(value, (int, float)):
                 overall = float(value)
@@ -89,7 +89,7 @@ def find_qs(model_tag: str, run_tag: str) -> tuple[float | None, dict[str, float
         try:
             for entry in read_json(detail_path):
                 qid = entry.get("id") or entry.get("qa_id") or entry.get("question_id")
-                score = entry.get("score") or entry.get("atm_score")
+                score = entry.get("accuracy", entry.get("score", entry.get("atm_score")))
                 if qid is not None and isinstance(score, (int, float)):
                     per_question[str(qid)] = float(score)
         except Exception:
