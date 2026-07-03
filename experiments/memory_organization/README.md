@@ -71,6 +71,37 @@ Takeaways under this setting (contrast with the recalled Qwen3.6-27B/Pi runs):
    the original findings need re-verification on the original setting
    (Qwen-class answerer on Pi) before going in the paper.
 
+### Phase split: does answering get cheaper AFTER organisation?
+
+The end-to-end numbers above bill the dynamic mode for its in-session
+organisation. Splitting each `org_dynamic` session at the last `timeline.md`
+write (tool-output bytes ≈ context volume as proxy):
+
+| | organise phase | answer phase (post-timeline) |
+|---|---|---|
+| gpt-5-mini (n=30) | 14.9 cmds · 956 KB | **1.9 cmds · 13 KB** (1% of volume) |
+| gpt-5.5 partial (n=6) | 11.2 cmds · 1,044 KB | **1.7 cmds · 4 KB** |
+
+Reference: the sgm baseline's **entire** run reads ~533 KB/question. So
+**once the question-specific timeline exists, answering is ~40× cheaper than
+the baseline's whole retrieval-and-answer loop** — the original Pi/Qwen
+observation ("answering+retrieval got cheaper, organisation not counted")
+replicates on Codex too. It is the *per-question* organisation cost
+(~2× the baseline's whole run) that flips the end-to-end sign.
+
+The sharp contrast: `org_heuristic`/`org_static` runs are *already*
+organisation-free at answer time (index built offline), yet their answering
+cost is **higher** than baseline — a **generic** event index does not make
+answering cheaper (agents read the index *and* still verify against raw
+records; the static index even increased raw accesses, 5.7 vs 4.7 per
+question). Only the **question-conditioned** organisation (dynamic timeline)
+collapses answering cost.
+
+**Implication:** the leverage is in amortising question-conditioned
+organisation — caching/reusing timelines across related questions, or
+organising at the event level so retrieval can descend the hierarchy
+(exactly the hierarchical-retrieval item on the REMMI roadmap).
+
 Reproduce: `compare_modes.py --model-base gpt-5-mini-medium` renders this
 table from the run artifacts; raw eval outputs live under
 `output/QA_Agent/AgentSystems/atm-bench-hard/codex/gpt-5-mini-medium*/eval/`.
