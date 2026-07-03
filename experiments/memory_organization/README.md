@@ -37,6 +37,44 @@ Setting: Qwen3.6-27B answerer, Pi harness, ATM-Bench-Hard.
 
 Treat these as hypotheses to re-verify with the scripts below, not as numbers.
 
+## Local rebuild results (2026-07-03)
+
+Setting: **gpt-5-mini** (medium reasoning) on the **Codex** harness, ATM-Bench-Hard
+(31 questions), ATM judge `gpt-5-mini`, single run per mode, API billing.
+
+| Mode | QS ↑ | Total tokens ↓ | Mean/Q | Tok/QS-pt ↓ | Unknown% |
+|------|-----:|---------------:|-------:|------------:|---------:|
+| sgm (baseline) | 20.4 | 9.34M | 301k | **459k** | 29% |
+| org_heuristic | 15.3 | 11.47M | 370k | 751k | 19% |
+| org_static | **23.7** | 13.08M | 422k | 553k | 26% |
+| org_dynamic | 22.3 | 17.08M | 551k | 767k | 29% |
+
+Per question type (QS): `number` identical everywhere (16.7); `list_recall` —
+org_dynamic best (40.9 vs baseline 35.9); `open_end` — org_static best
+(15.4 vs baseline 7.7, heuristic collapses to 0.0).
+
+Takeaways under this setting (contrast with the recalled Qwen3.6-27B/Pi runs):
+
+1. **Both agent-organized modes beat the baseline on QS** (static +3.3,
+   dynamic +1.9) — but **neither saved tokens** (static +40%, dynamic +83%).
+   The recalled "dynamic saves tokens AND lifts QS" did **not** transfer.
+2. **Heuristic organisation actively hurt** (−5.1 QS, +23% tokens): the index
+   lowers the unknown-rate (19%) but the extra answers are wrong — day-gap
+   events give the answerer false confidence, and open-ended QS drops to 0.
+3. **Dynamic organisation helps exactly where the mechanism predicts**:
+   multi-evidence recall questions (+5.0 over baseline), where building a
+   timeline first aids enumeration.
+4. On pure efficiency (tokens per QS point) the flat SGM baseline remains the
+   best at this answerer scale — organisation gains do not yet pay for their
+   token cost with a small answerer on this harness.
+5. Net: **organisation benefits appear strongly answerer/harness-dependent**;
+   the original findings need re-verification on the original setting
+   (Qwen-class answerer on Pi) before going in the paper.
+
+Reproduce: `compare_modes.py --model-base gpt-5-mini-medium` renders this
+table from the run artifacts; raw eval outputs live under
+`output/QA_Agent/AgentSystems/atm-bench-hard/codex/gpt-5-mini-medium*/eval/`.
+
 ## Running locally
 
 ```bash
