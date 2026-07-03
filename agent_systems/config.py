@@ -257,6 +257,7 @@ def load_config() -> AgentSystemsConfig:
         "org_heuristic": "agent_systems/eval_root_orgh",
         "org_static": "agent_systems/eval_root_orgs",
         "org_dynamic": "agent_systems/eval_root_orgd",
+        "org_hybrid": "agent_systems/eval_root_orgx",
     }.get(memory_mode, "agent_systems/eval_root_sgm")
     eval_root = _env("AGSYS_EVAL_ROOT", default_eval_root)
     image_metadata = _env(
@@ -287,6 +288,7 @@ def load_config() -> AgentSystemsConfig:
         "org_heuristic": "system_prompt_org.txt",
         "org_static": "system_prompt_org.txt",
         "org_dynamic": "system_prompt_org_dynamic.txt",
+        "org_hybrid": "system_prompt_org_hybrid.txt",
     }.get(memory_mode, "system_prompt.txt")
     system_prompt_source = _env("AGSYS_SYSTEM_PROMPT_SOURCE", f"{prompts_source_dir}/{default_system_prompt_name}")
     qa_schema_source = _env("AGSYS_QA_SCHEMA_SOURCE", f"{prompts_source_dir}/qa_schema.json")

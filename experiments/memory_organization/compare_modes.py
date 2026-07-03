@@ -26,6 +26,7 @@ def modes_for(base_tag: str) -> list[tuple[str, str, str]]:
         ("org_heuristic", "agent_systems/eval_root_orgh", f"{base_tag}-orgh"),
         ("org_static", "agent_systems/eval_root_orgs", f"{base_tag}-orgs"),
         ("org_dynamic", "agent_systems/eval_root_orgd", f"{base_tag}-orgd"),
+        ("org_hybrid", "agent_systems/eval_root_orgx", f"{base_tag}-orgx"),
     ]
 
 
