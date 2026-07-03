@@ -19,13 +19,16 @@ import statistics
 from pathlib import Path
 from typing import Any
 
-MODES = [
-    # label, eval_root, model_tag
-    ("sgm (baseline)", "agent_systems/eval_root_sgm", "gpt-5.5-medium"),
-    ("org_heuristic", "agent_systems/eval_root_orgh", "gpt-5.5-medium-orgh"),
-    ("org_static", "agent_systems/eval_root_orgs", "gpt-5.5-medium-orgs"),
-    ("org_dynamic", "agent_systems/eval_root_orgd", "gpt-5.5-medium-orgd"),
-]
+def modes_for(base_tag: str) -> list[tuple[str, str, str]]:
+    return [
+        # label, eval_root, model_tag
+        ("sgm (baseline)", "agent_systems/eval_root_sgm", base_tag),
+        ("org_heuristic", "agent_systems/eval_root_orgh", f"{base_tag}-orgh"),
+        ("org_static", "agent_systems/eval_root_orgs", f"{base_tag}-orgs"),
+        ("org_dynamic", "agent_systems/eval_root_orgd", f"{base_tag}-orgd"),
+    ]
+
+
 RESULTS_ROOT = "output/QA_Agent/AgentSystems"
 AGENT = "codex"
 
@@ -103,11 +106,12 @@ def fmt_tokens(n: float) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-tag", default="atm-bench-hard")
+    parser.add_argument("--model-base", default="gpt-5-mini-medium", help="base model tag (mode suffixes appended)")
     parser.add_argument("--json", type=Path, help="also dump the raw comparison as JSON")
     args = parser.parse_args()
 
     table: list[dict[str, Any]] = []
-    for label, eval_root, model_tag in MODES:
+    for label, eval_root, model_tag in modes_for(args.model_base):
         data = collect_mode(eval_root, model_tag, args.run_tag)
         rows = [r for r in data["rows"] if r.get("total_tokens")]
         if not rows:
@@ -133,7 +137,7 @@ def main() -> None:
             entry["tokens_per_qs_point"] = sum(totals) / (qs * 100 if qs <= 1 else qs)
         table.append(entry)
 
-    print(f"\n## Memory-organization comparison — {args.run_tag} (codex / gpt-5.5-medium)\n")
+    print(f"\n## Memory-organization comparison — {args.run_tag} (codex / {args.model_base})\n")
     print("| Mode | Qs | QS | Total tokens | Mean/Q | Median/Q | Max/Q | Unknown% | Tok/QS-pt |")
     print("|------|---:|---:|-------------:|-------:|---------:|------:|---------:|----------:|")
     for e in table:
