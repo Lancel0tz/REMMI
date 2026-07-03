@@ -37,39 +37,53 @@ Setting: Qwen3.6-27B answerer, Pi harness, ATM-Bench-Hard.
 
 Treat these as hypotheses to re-verify with the scripts below, not as numbers.
 
-## Local rebuild results (2026-07-03)
+## Local rebuild results (2026-07-03, final)
 
 Setting: **gpt-5-mini** (medium reasoning) on the **Codex** harness, ATM-Bench-Hard
 (31 questions), ATM judge `gpt-5-mini`, single run per mode, API billing.
+*Billed* tokens count cached context re-sends of the agent loop; *Uncached/Q*
+is real new content (new input + output) — the comparable measure.
 
-| Mode | QS ↑ | Total tokens ↓ | Mean/Q | Tok/QS-pt ↓ | Unknown% |
-|------|-----:|---------------:|-------:|------------:|---------:|
-| sgm (baseline) | 20.4 | 9.34M | 301k | **459k** | 29% |
-| org_heuristic | 15.3 | 11.47M | 370k | 751k | 19% |
-| org_static | **23.7** | 13.08M | 422k | 553k | 26% |
-| org_dynamic | 22.3 | 17.08M | 551k | 767k | 29% |
+| Mode | QS ↑ | Billed | Mean/Q | **Uncached/Q** | Unknown% | Organiser cost |
+|------|-----:|-------:|-------:|---------------:|---------:|---------------:|
+| sgm (baseline) | 20.4 | 9.34M | 301k | 65k | 29% | — |
+| org_heuristic | 15.3 | 11.47M | 370k | 83k | 19% | 0 (no LLM) |
+| org_static (pure) | 24.7 | 13.99M | 451k | 111k | 19% | 327.6k once (≈10.6k/Q) |
+| org_dynamic | 22.3 | 17.08M | 551k | 120k | 29% | in-session, ~99% of tokens |
+| **org_hybrid** | **27.8** | 15.97M | 515k | 103k | **16%** | reuses static index |
 
-Per question type (QS): `number` identical everywhere (16.7); `list_recall` —
-org_dynamic best (40.9 vs baseline 35.9); `open_end` — org_static best
-(15.4 vs baseline 7.7, heuristic collapses to 0.0).
+Per question type (QS): `number` identical everywhere (16.7 — nobody solves
+them); `list_recall` — org_dynamic best (40.9), hybrid/static close (38.5/38.8)
+vs baseline 35.9; `open_end` — **org_hybrid 23.1 = 3× baseline** (7.7),
+static 15.4, heuristic collapses to 0.0.
+
+Static organiser variants: the **pure** item-level LLM organiser (392 events,
+327.6k tokens measured) beats the heuristic-seeded shortcut (127 events, ~73k)
+by +1.0 QS (24.7 vs 23.7) — LLM-decided boundaries produce a more useful index.
 
 Takeaways under this setting (contrast with the recalled Qwen3.6-27B/Pi runs):
 
-1. **Both agent-organized modes beat the baseline on QS** (static +3.3,
-   dynamic +1.9) — but **neither saved tokens** (static +40%, dynamic +83%).
-   The recalled "dynamic saves tokens AND lifts QS" did **not** transfer.
-2. **Heuristic organisation actively hurt** (−5.1 QS, +23% tokens): the index
-   lowers the unknown-rate (19%) but the extra answers are wrong — day-gap
-   events give the answerer false confidence, and open-ended QS drops to 0.
-3. **Dynamic organisation helps exactly where the mechanism predicts**:
-   multi-evidence recall questions (+5.0 over baseline), where building a
-   timeline first aids enumeration.
-4. On pure efficiency (tokens per QS point) the flat SGM baseline remains the
-   best at this answerer scale — organisation gains do not yet pay for their
-   token cost with a small answerer on this harness.
+1. **org_hybrid (index-guided dynamic organisation) wins**: +7.4 QS over
+   baseline, lowest unknown-rate, and 3× baseline on open-ended questions —
+   while reading *less* new content than dynamic (103k vs 120k/Q) and reusing
+   the one-time static index. Locate via index → drill only into shortlisted
+   events → organise → answer.
+2. All LLM-organized modes beat the baseline on QS (hybrid +7.4, static +4.3,
+   dynamic +1.9) — but none reduce end-to-end token cost below baseline;
+   the recalled "dynamic saves tokens" referred to the answering phase only
+   (see phase split below).
+3. **Heuristic organisation actively hurt** (−5.1 QS): the day-gap index
+   lowers the unknown-rate but the extra answers are wrong — mechanically
+   chosen event boundaries give the answerer false confidence (open-ended → 0).
+   Contrast with the pure-LLM index (+4.3): **index quality, not index
+   existence, is what matters.**
+4. **Context bloat hurts quality**: dynamic re-sends a growing raw-grep
+   context (545k billed vs 120k new content per question) and scores 22.3;
+   hybrid constrains the working set via the index and scores 27.8. Same
+   organise-then-answer workflow — the difference is what enters context.
 5. Net: **organisation benefits appear strongly answerer/harness-dependent**;
-   the original findings need re-verification on the original setting
-   (Qwen-class answerer on Pi) before going in the paper.
+   re-verify on the original setting (Qwen-class answerer on Pi) before
+   drawing paper conclusions.
 
 ### Phase split: does answering get cheaper AFTER organisation?
 
