@@ -52,6 +52,9 @@ from remmi.organize.heuristic import (
 DEFAULT_BASE_URL = "http://localhost:8000/v1"
 DEFAULT_MODEL = "gpt-5.5"
 
+# Accumulated across all chat() calls of one organiser run (reported at the end).
+USAGE_TOTALS = {"input_tokens": 0, "output_tokens": 0, "calls": 0}
+
 SYSTEM_PROMPT = """You organise a personal photo/video memory corpus into coherent events.
 You receive numbered SEED EVENTS (chronological), each with dates, city, top tags/entities and sample captions.
 Decide the final event grouping: merge seeds that belong to one real-life event or trip; keep others as-is.
@@ -86,6 +89,10 @@ def chat(messages: list[dict[str, str]], *, base_url: str, model: str, retries: 
         try:
             with urllib.request.urlopen(request, timeout=600) as response:
                 body = json.loads(response.read().decode("utf-8"))
+            usage = body.get("usage") or {}
+            USAGE_TOTALS["input_tokens"] += usage.get("prompt_tokens", 0)
+            USAGE_TOTALS["output_tokens"] += usage.get("completion_tokens", 0)
+            USAGE_TOTALS["calls"] += 1
             return body["choices"][0]["message"]["content"]
         except Exception as exc:  # noqa: BLE001 - retry then surface
             last_error = exc
@@ -205,6 +212,140 @@ def organize_with_agent(
     }
 
 
+PURE_SYSTEM_PROMPT = """You organise a personal photo/video memory corpus into real-life events.
+You receive ITEMS in strict chronological order: `idx | timestamp | city | short_caption`.
+Group them into contiguous events: an event is a run of consecutive items belonging to one
+real-life episode (an outing, a trip day-or-multi-day, a dinner, a project session...).
+YOU decide every boundary — split or join freely based on time, place, and content.
+If PREVIOUS_OPEN_EVENT is given, the first items may continue it; mark that group with "continues_previous": true.
+Respond with ONLY a JSON array, in order, covering EVERY index exactly once:
+[{"start_idx": <int>, "end_idx": <int>, "kind": "event"|"trip", "title": "<= 8 words", "summary": "1-2 sentences", "continues_previous": <bool, optional>}]
+No other text."""
+
+
+def _item_line(index: int, item: Any) -> str:
+    ts = item.timestamp.strftime("%Y-%m-%d %H:%M") if item.timestamp else "undated"
+    return f"{index} | {ts} | {item.city} | {item.short_caption[:120]}"
+
+
+def _parse_ranges(raw: str, lo: int, hi: int) -> list[dict[str, Any]]:
+    """Parse chunk grouping; repair gaps/overlaps so [lo, hi] is covered exactly."""
+    text = raw.strip().strip("`")
+    groups = json.loads(text[text.find("[") : text.rfind("]") + 1])
+    cleaned: list[dict[str, Any]] = []
+    cursor = lo
+    for group in sorted(groups, key=lambda g: int(g.get("start_idx", lo))):
+        start = max(int(group.get("start_idx", cursor)), cursor)
+        end = min(int(group.get("end_idx", start)), hi)
+        if end < cursor or start > hi:
+            continue
+        if start > cursor:  # gap the model skipped -> untitled filler event
+            cleaned.append({"start_idx": cursor, "end_idx": start - 1, "kind": "event", "title": "", "summary": ""})
+        cleaned.append(
+            {
+                "start_idx": start,
+                "end_idx": end,
+                "kind": group.get("kind", "event"),
+                "title": str(group.get("title", "")).strip(),
+                "summary": str(group.get("summary", "")).strip(),
+                "continues_previous": bool(group.get("continues_previous", False)),
+            }
+        )
+        cursor = end + 1
+    if cursor <= hi:
+        cleaned.append({"start_idx": cursor, "end_idx": hi, "kind": "event", "title": "", "summary": ""})
+    return cleaned
+
+
+def organize_pure(
+    image_source: Path,
+    video_source: Path,
+    emails_source: Path | None,
+    *,
+    base_url: str,
+    model: str,
+    chunk_items: int = 250,
+) -> dict[str, Any]:
+    """Pure LLM organisation: the model decides EVERY event boundary at item level.
+
+    No heuristic seeding — items are streamed chronologically in chunks; the
+    model groups them into contiguous events, with an open-event carry-over so
+    events can span chunk boundaries.
+    """
+    items = load_media_items(image_source, video_source)
+    dated = sorted((i for i in items if i.timestamp), key=lambda i: i.timestamp)
+    undated = [i.item_id for i in items if not i.timestamp]
+
+    events: list[dict[str, Any]] = []
+    open_event: dict[str, Any] | None = None
+    for lo in range(0, len(dated), chunk_items):
+        hi = min(lo + chunk_items, len(dated)) - 1
+        lines = "\n".join(_item_line(i, dated[i]) for i in range(lo, hi + 1))
+        context = ""
+        if open_event is not None:
+            context = (
+                "PREVIOUS_OPEN_EVENT: "
+                + json.dumps({k: open_event[k] for k in ("kind", "title", "summary", "start", "end")})
+                + "\n\n"
+            )
+        raw = chat(
+            [
+                {"role": "system", "content": PURE_SYSTEM_PROMPT},
+                {"role": "user", "content": f"{context}ITEMS:\n{lines}"},
+            ],
+            base_url=base_url,
+            model=model,
+        )
+        for order, group in enumerate(_parse_ranges(raw, lo, hi)):
+            members = dated[group["start_idx"] : group["end_idx"] + 1]
+            if order == 0 and group.get("continues_previous") and open_event is not None:
+                open_event["item_ids"].extend(m.item_id for m in members)
+                open_event["item_count"] += len(members)
+                open_event["end"] = members[-1].timestamp.date().isoformat()
+                open_event["cities"] = sorted(set(open_event["cities"]) | {m.city for m in members if m.city})
+                continue
+            if open_event is not None:
+                events.append(open_event)
+            cities = [m.city for m in members if m.city]
+            open_event = {
+                "event_id": f"P{len(events) + 1:04d}",
+                "kind": group["kind"] if group["kind"] in ("event", "trip") else "event",
+                "title": group["title"],
+                "summary": group["summary"],
+                "start": members[0].timestamp.date().isoformat(),
+                "end": members[-1].timestamp.date().isoformat(),
+                "days": 0,
+                "city": max(set(cities), key=cities.count) if cities else "",
+                "cities": sorted(set(cities)),
+                "top_locations": [],
+                "item_count": len(members),
+                "item_ids": [m.item_id for m in members],
+                "top_tags": [],
+                "top_entities": [],
+                "sample_captions": [m.short_caption for m in members[:3] if m.short_caption],
+            }
+        print(f"  chunk {lo}-{hi} -> {len(events) + 1} events so far")
+    if open_event is not None:
+        events.append(open_event)
+    for index, event in enumerate(events, start=1):  # renumber after carry-merges
+        event["event_id"] = f"P{index:04d}"
+
+    if emails_source is not None:
+        with open(emails_source, "r", encoding="utf-8") as handle:
+            attach_email_ids(events, json.load(handle))
+
+    return {
+        "generated_by": "remmi.organize.agent_static:pure",
+        "params": {"model": model, "chunk_items": chunk_items},
+        "organiser_usage": dict(USAGE_TOTALS),
+        "home_city": home_city(items),
+        "event_count": len(events),
+        "trip_count": sum(1 for e in events if e["kind"] == "trip"),
+        "undated_item_ids": undated,
+        "events": events,
+    }
+
+
 def main() -> None:
     import argparse
 
@@ -213,28 +354,50 @@ def main() -> None:
     parser.add_argument("--video-source", required=True, type=Path)
     parser.add_argument("--emails-source", type=Path)
     parser.add_argument("--out", required=True, type=Path)
-    parser.add_argument("--batch-size", type=int, default=40)
-    parser.add_argument("--gap-days", type=int, default=2)
+    parser.add_argument(
+        "--strategy",
+        choices=("pure", "seeded"),
+        default="pure",
+        help="pure: the LLM decides every event boundary at item level (default). "
+        "seeded: heuristic day-gap clustering first, LLM only merges/labels seeds.",
+    )
+    parser.add_argument("--batch-size", type=int, default=40, help="(seeded) seed events per LLM call")
+    parser.add_argument("--gap-days", type=int, default=2, help="(seeded) heuristic gap")
+    parser.add_argument("--chunk-items", type=int, default=250, help="(pure) items per LLM call")
     args = parser.parse_args()
 
     base_url = os.environ.get("ORGANIZER_BASE_URL", DEFAULT_BASE_URL)
     model = os.environ.get("ORGANIZER_MODEL", DEFAULT_MODEL)
-    print(f"organiser endpoint: {base_url} model: {model}")
+    print(f"organiser endpoint: {base_url} model: {model} strategy: {args.strategy}")
 
-    payload = organize_with_agent(
-        args.image_source,
-        args.video_source,
-        args.emails_source,
-        base_url=base_url,
-        model=model,
-        batch_size=args.batch_size,
-        gap_days=args.gap_days,
-    )
+    if args.strategy == "pure":
+        payload = organize_pure(
+            args.image_source,
+            args.video_source,
+            args.emails_source,
+            base_url=base_url,
+            model=model,
+            chunk_items=args.chunk_items,
+        )
+    else:
+        payload = organize_with_agent(
+            args.image_source,
+            args.video_source,
+            args.emails_source,
+            base_url=base_url,
+            model=model,
+            batch_size=args.batch_size,
+            gap_days=args.gap_days,
+        )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=1)
         handle.write("\n")
     print(f"organized {payload['event_count']} events ({payload['trip_count']} trips) -> {args.out}")
+    print(
+        f"organiser usage: {USAGE_TOTALS['calls']} calls, "
+        f"{USAGE_TOTALS['input_tokens']:,} in + {USAGE_TOTALS['output_tokens']:,} out tokens"
+    )
 
 
 if __name__ == "__main__":
