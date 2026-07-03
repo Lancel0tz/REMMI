@@ -50,7 +50,18 @@ is real new content (new input + output) — the comparable measure.
 | org_heuristic | 15.3 | 11.47M | 370k | 83k | 19% | 0 (no LLM) |
 | org_static (pure) | 24.7 | 13.99M | 451k | 111k | 19% | 327.6k once (≈10.6k/Q) |
 | org_dynamic | 22.3 | 17.08M | 551k | 120k | 29% | in-session, ~99% of tokens |
-| **org_hybrid** | **27.8** | 15.97M | 515k | 103k | **16%** | reuses static index |
+| org_hybrid | 27.8 | 15.97M | 515k | 103k | 16% | reuses static index |
+| **org_remmi** | **33.2** | 16.81M | 542k | 128k | **6%** | none (search tool, no LLM index) |
+
+**org_remmi** = the REMMI retrieval pillar feeding the episodic pillar: a
+zero-dependency `memory/search.py` (BM25 + date/city/type filters over a 2MB
+corpus projection — the sparse+metadata channels of the REMMI hybrid
+retriever) ships into each workspace; the agent decomposes the question into
+~6 searches, verifies ~9 retrieved records against raw files, organises a
+timeline, answers. QS +12.8 over baseline (+63% relative), unknown-rate 29%→6%,
+best recall (44.0) *and* best open-ended (30.8). It does not reduce tokens
+(128k uncached/Q) — it converts the same reading budget into far better
+evidence. Retrieval-quality, not token-thrift, is what pays.
 
 Per question type (QS): `number` identical everywhere (16.7 — nobody solves
 them); `list_recall` — org_dynamic best (40.9), hybrid/static close (38.5/38.8)
@@ -63,8 +74,13 @@ by +1.0 QS (24.7 vs 23.7) — LLM-decided boundaries produce a more useful index
 
 Takeaways under this setting (contrast with the recalled Qwen3.6-27B/Pi runs):
 
-1. **org_hybrid (index-guided dynamic organisation) wins**: +7.4 QS over
-   baseline, lowest unknown-rate, and 3× baseline on open-ended questions —
+0. **org_remmi (retrieval-as-a-tool) wins overall**: giving the agent a real
+   retriever for discovery beats both index-guided (orgx +5.4) and blind-grep
+   (orgd +10.9) dynamic organisation. The evidence bottleneck is *discovery
+   quality*: grep finds keyword matches, the index finds coarse events, the
+   retriever finds ranked relevant items.
+1. **org_hybrid (index-guided dynamic organisation) is second**: +7.4 QS over
+   baseline, low unknown-rate, 3× baseline on open-ended questions —
    while reading *less* new content than dynamic (103k vs 120k/Q) and reusing
    the one-time static index. Locate via index → drill only into shortlisted
    events → organise → answer.
