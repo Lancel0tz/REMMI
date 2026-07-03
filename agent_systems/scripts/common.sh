@@ -81,7 +81,8 @@ agsys_sanitize_tag() {
 
 agsys_normalize_memory_mode() {
   local mode="${1:-sgm}"
-  mode="${mode,,}"
+  # ${var,,} is bash 4+; stock macOS ships bash 3.2, so lowercase portably.
+  mode="$(printf '%s' "${mode}" | tr '[:upper:]' '[:lower:]')"
   mode="${mode//-/_}"
   case "${mode}" in
     baseline|full)
@@ -92,6 +93,15 @@ agsys_normalize_memory_mode() {
       ;;
     raw_entries|raw_media)
       mode="raw"
+      ;;
+    orgh|organized_heuristic)
+      mode="org_heuristic"
+      ;;
+    orgs|organized_static)
+      mode="org_static"
+      ;;
+    orgd|organized_dynamic)
+      mode="org_dynamic"
       ;;
   esac
   echo "${mode}"
@@ -106,6 +116,15 @@ agsys_memory_tag_suffix() {
       ;;
     descriptive)
       echo "dm"
+      ;;
+    org_heuristic)
+      echo "orgh"
+      ;;
+    org_static)
+      echo "orgs"
+      ;;
+    org_dynamic)
+      echo "orgd"
       ;;
     *)
       echo ""

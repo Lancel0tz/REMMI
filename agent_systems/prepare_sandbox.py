@@ -11,9 +11,12 @@ Usage (from repo root):
     python agent_systems/prepare_sandbox.py [--force]
 
 Memory representation:
-    AGSYS_MEMORY_MODE=sgm          full SGM metadata baseline (default)
-    AGSYS_MEMORY_MODE=raw          minimal ID-to-raw-media JSON plus hardlinked media
-    AGSYS_MEMORY_MODE=descriptive  minimal {id, caption} image/video JSON
+    AGSYS_MEMORY_MODE=sgm            full SGM metadata baseline (default)
+    AGSYS_MEMORY_MODE=raw            minimal ID-to-raw-media JSON plus hardlinked media
+    AGSYS_MEMORY_MODE=descriptive    minimal {id, caption} image/video JSON
+    AGSYS_MEMORY_MODE=org_heuristic  SGM + organized_memory.json event index (day-gap clustering)
+    AGSYS_MEMORY_MODE=org_static     SGM + prebuilt LLM-organized index (set AGSYS_ORGANIZED_MEMORY)
+    AGSYS_MEMORY_MODE=org_dynamic    SGM files; agent self-organises per question (prompt-only variant)
 
 WARNING:
     --force archives the existing eval_root directory tree before rebuilding it.
@@ -100,6 +103,7 @@ def create_eval_root(questions: list[dict], force: bool = False) -> None:
             print(f"  WARNING: memory source missing: {src}", file=sys.stderr)
             sys.exit(1)
 
+    organized_source_env = os.environ.get("AGSYS_ORGANIZED_MEMORY", "")
     manifest = build_memory_variant(
         mode=MEMORY_MODE,
         image_source=MEMORY_SOURCES["image_metadata.json"],
@@ -108,6 +112,7 @@ def create_eval_root(questions: list[dict], force: bool = False) -> None:
         out_dir=memory_dir,
         raw_image_dir=RAW_IMAGE_DIR,
         raw_video_dir=RAW_VIDEO_DIR,
+        organized_source=resolve_repo_path(organized_source_env) if organized_source_env else None,
     )
     print(f"  memory mode: {manifest['memory_mode']}")
     for name in ("image_metadata.json", "video_metadata.json", "emails.json", "memory_variant.json"):

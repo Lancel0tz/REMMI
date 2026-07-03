@@ -45,3 +45,6 @@ docs/agent-instructions/
 agent_systems/eval_root*/
 agent_systems/**/node_modules/
 agent_systems/**/.codex-runtime/
+
+# Personal dissertation drafts (not part of the public artifact)
+dissertation/
