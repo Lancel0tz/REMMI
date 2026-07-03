@@ -71,7 +71,8 @@ def _api_key() -> str:
 
 
 def chat(messages: list[dict[str, str]], *, base_url: str, model: str, retries: int = 3) -> str:
-    payload = json.dumps({"model": model, "messages": messages, "temperature": 0}).encode("utf-8")
+    # No temperature override: gpt-5.x chat completions reject non-default values.
+    payload = json.dumps({"model": model, "messages": messages}).encode("utf-8")
     request = urllib.request.Request(
         f"{base_url.rstrip('/')}/chat/completions",
         data=payload,
