@@ -103,6 +103,9 @@ agsys_normalize_memory_mode() {
     orgd|organized_dynamic)
       mode="org_dynamic"
       ;;
+    orgx|organized_hybrid)
+      mode="org_hybrid"
+      ;;
   esac
   echo "${mode}"
 }
@@ -125,6 +128,9 @@ agsys_memory_tag_suffix() {
       ;;
     org_dynamic)
       echo "orgd"
+      ;;
+    org_hybrid)
+      echo "orgx"
       ;;
     *)
       echo ""
