@@ -261,6 +261,7 @@ def load_config() -> AgentSystemsConfig:
         "org_remmi": "agent_systems/eval_root_orgr",
         "org_remmi2": "agent_systems/eval_root_orgr2",
         "org_remmi3": "agent_systems/eval_root_orgr3",
+        "org_remmi4": "agent_systems/eval_root_orgr4",
     }.get(memory_mode, "agent_systems/eval_root_sgm")
     eval_root = _env("AGSYS_EVAL_ROOT", default_eval_root)
     image_metadata = _env(
@@ -295,6 +296,7 @@ def load_config() -> AgentSystemsConfig:
         "org_remmi": "system_prompt_org_remmi.txt",
         "org_remmi2": "system_prompt_org_remmi2.txt",
         "org_remmi3": "system_prompt_org_remmi3.txt",
+        "org_remmi4": "system_prompt_org_remmi4.txt",
     }.get(memory_mode, "system_prompt.txt")
     system_prompt_source = _env("AGSYS_SYSTEM_PROMPT_SOURCE", f"{prompts_source_dir}/{default_system_prompt_name}")
     qa_schema_source = _env("AGSYS_QA_SCHEMA_SOURCE", f"{prompts_source_dir}/qa_schema.json")
