@@ -53,6 +53,34 @@ is real new content (new input + output) — the comparable measure.
 | org_hybrid | 27.8 | 15.97M | 515k | 103k | 16% | reuses static index |
 | **org_remmi** | **33.2** | 16.81M | 542k | 128k | **6%** | none (search tool, no LLM index) |
 
+### org_remmi iteration: optimising tokens AND QS (v1 → v6)
+
+Six prompt/tool iterations on the retrieval-tool mode, all gpt-5-mini, 31 Qs:
+
+| v | Change | QS | number/recall/open | Uncached/Q | Billed/Q |
+|---|--------|---:|:--:|---:|---:|
+| 1 | tool, no constraints | 33.2 | 16.7 / 44.0 / 30.8 | 128k | 542k |
+| 2 | rich --show, ≤6-cmd budget | 18.7 | — | 58k | 215k |
+| 3 | slim --show, ≤4-cmd budget | 12.6 | 16.7 / 24.2 / 0.0 | 35k | 161k |
+| 4 | no budget + cheap tools + thoroughness | 21.7 | 33.3 / 39.3 / 0.0 | 101k | 420k |
+| 5 | + answer-type A/B (prose for open) | 25.6 | 0.0 / 41.0 / 23.1 | 87k | 358k |
+| **6** | **+ three-way typing (bare numbers)** | **35.5** | **33.3 / 41.8 / 30.8** | **87k** | **402k** |
+
+**v6 beats v1 on QS (+2.3) at −32% uncached / −26% billed tokens** — the best
+tokens-per-QS-point of every mode tested (351k vs baseline's 459k). Lessons:
+
+1. **Command-budget pressure destroys QS** (v2/v3): the agent answers from
+   insufficient evidence. Token savings must come from cheaper *tools*, not
+   fewer *attempts*.
+2. **Tool efficiency is free**: batched multi-query search, compact `--show`
+   lines (330B vs 1.2KB), and banning raw-file scans cut cost without any QS
+   loss — once thoroughness rules keep the agent diligent.
+3. **Answer-format typing is a judge-alignment problem**: id-primed timelines
+   made the agent answer prose questions with item ids (v4 open collapse);
+   prose rules leaked into number questions whose judge wants bare figures
+   (v5 number collapse). Explicit A(ids)/B(bare number)/C(prose) typing fixed
+   both without touching retrieval.
+
 **org_remmi** = the REMMI retrieval pillar feeding the episodic pillar: a
 zero-dependency `memory/search.py` (BM25 + date/city/type filters over a 2MB
 corpus projection — the sparse+metadata channels of the REMMI hybrid
