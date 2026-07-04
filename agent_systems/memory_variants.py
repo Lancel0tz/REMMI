@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-VALID_MEMORY_MODES = ("sgm", "raw", "descriptive", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi")
+VALID_MEMORY_MODES = ("sgm", "raw", "descriptive", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi", "org_remmi2")
 
 
 def normalize_memory_mode(mode: str) -> str:
@@ -34,6 +34,8 @@ def normalize_memory_mode(mode: str) -> str:
         "organized_hybrid": "org_hybrid",
         "orgr": "org_remmi",
         "organized_remmi": "org_remmi",
+        "orgr2": "org_remmi2",
+        "organized_remmi2": "org_remmi2",
     }
     normalized = aliases.get(normalized, normalized)
     if normalized not in VALID_MEMORY_MODES:
@@ -195,7 +197,7 @@ def build_memory_variant(
     video_records = load_json_list(video_source)
 
     media_manifest: dict[str, Any] = {}
-    if mode in ("sgm", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi"):
+    if mode in ("sgm", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi", "org_remmi2"):
         # Organized modes keep the full SGM per-item files (recall questions
         # must still answer with exact item ids); org_heuristic/org_static/
         # org_hybrid add a compact event index on top, org_dynamic changes only
@@ -212,7 +214,7 @@ def build_memory_variant(
                 out_dir=out_dir,
                 organized_source=organized_source,
             )
-        if mode == "org_remmi":
+        if mode in ("org_remmi", "org_remmi2"):
             import sys
 
             repo_root = Path(__file__).resolve().parent.parent
@@ -220,13 +222,15 @@ def build_memory_variant(
                 sys.path.insert(0, str(repo_root))
             from remmi.organize.search_pack import build_search_corpus
 
-            corpus = build_search_corpus(image_source, video_source, emails_source)
+            rich = mode == "org_remmi2"  # v2 ships full projected records for --show
+            corpus = build_search_corpus(image_source, video_source, emails_source, rich=rich)
             dump_json(out_dir / "search_corpus.json", corpus)
             shutil.copy2(repo_root / "agent_systems" / "tools" / "search.py", out_dir / "search.py")
             media_manifest["search_tool"] = {
                 "search_tool": "search.py",
                 "search_corpus": "search_corpus.json",
                 "corpus_items": len(corpus),
+                "rich": rich,
             }
     elif mode == "raw":
         dump_json(out_dir / "image_metadata.json", raw_entries(image_records, "image_path", "raw_images"))
