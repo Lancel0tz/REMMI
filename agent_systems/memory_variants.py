@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-VALID_MEMORY_MODES = ("sgm", "raw", "descriptive", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6")
+VALID_MEMORY_MODES = ("sgm", "raw", "descriptive", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7")
 
 
 def normalize_memory_mode(mode: str) -> str:
@@ -44,6 +44,8 @@ def normalize_memory_mode(mode: str) -> str:
         "organized_remmi5": "org_remmi5",
         "orgr6": "org_remmi6",
         "organized_remmi6": "org_remmi6",
+        "orgr7": "org_remmi7",
+        "organized_remmi7": "org_remmi7",
     }
     normalized = aliases.get(normalized, normalized)
     if normalized not in VALID_MEMORY_MODES:
@@ -167,7 +169,7 @@ def build_organized_index(
 
         payload = build_organized_memory(image_source, video_source, emails_source)
         dump_json(out_dir / "organized_memory.json", payload)
-    elif mode in ("org_static", "org_hybrid"):
+    elif mode in ("org_static", "org_hybrid", "org_remmi7"):
         if organized_source is None or not Path(organized_source).exists():
             raise FileNotFoundError(
                 f"{mode} requires a prebuilt organized memory index. Generate one with "
@@ -205,7 +207,7 @@ def build_memory_variant(
     video_records = load_json_list(video_source)
 
     media_manifest: dict[str, Any] = {}
-    if mode in ("sgm", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6"):
+    if mode in ("sgm", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7"):
         # Organized modes keep the full SGM per-item files (recall questions
         # must still answer with exact item ids); org_heuristic/org_static/
         # org_hybrid add a compact event index on top, org_dynamic changes only
@@ -213,7 +215,7 @@ def build_memory_variant(
         # org_remmi ships the REMMI search tool + compact corpus projection.
         shutil.copy2(image_source, out_dir / "image_metadata.json")
         shutil.copy2(video_source, out_dir / "video_metadata.json")
-        if mode in ("org_heuristic", "org_static", "org_hybrid"):
+        if mode in ("org_heuristic", "org_static", "org_hybrid", "org_remmi7"):
             media_manifest["organized"] = build_organized_index(
                 mode=mode,
                 image_source=image_source,
@@ -222,7 +224,7 @@ def build_memory_variant(
                 out_dir=out_dir,
                 organized_source=organized_source,
             )
-        if mode in ("org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6"):
+        if mode in ("org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7"):
             import sys
 
             repo_root = Path(__file__).resolve().parent.parent
@@ -230,7 +232,7 @@ def build_memory_variant(
                 sys.path.insert(0, str(repo_root))
             from remmi.organize.search_pack import build_search_corpus
 
-            rich = mode in ("org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6")  # v2 ships full projected records for --show
+            rich = mode in ("org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7")  # v2 ships full projected records for --show
             corpus = build_search_corpus(image_source, video_source, emails_source, rich=rich)
             dump_json(out_dir / "search_corpus.json", corpus)
             shutil.copy2(repo_root / "agent_systems" / "tools" / "search.py", out_dir / "search.py")

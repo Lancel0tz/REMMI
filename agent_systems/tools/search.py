@@ -82,11 +82,82 @@ def show_records(items: list[dict], ids: list[str], full: bool = False) -> None:
             print(f"   {key}: {value}")
 
 
+def load_events() -> list[dict]:
+    events_path = Path(__file__).parent / "organized_memory.json"
+    if not events_path.exists():
+        return []
+    with open(events_path, "r", encoding="utf-8") as handle:
+        return json.load(handle).get("events", [])
+
+
+def event_line(event: dict) -> str:
+    title = event.get("title") or ", ".join(event.get("top_tags", [])[:4]) or "(untitled)"
+    return (
+        f"{event['event_id']} | {event['kind']:5s} | {event['start']}..{event['end']} "
+        f"| {(event.get('city') or '')[:24]:24s} | items={event['item_count']:3d} emails={len(event.get('email_ids') or []):2d} | {title[:60]}"
+    )
+
+
+def search_events(queries: list[str], events: list[dict], top_k: int) -> None:
+    docs = [
+        tokenize(
+            " ".join(
+                [
+                    event.get("title") or "",
+                    event.get("summary") or "",
+                    event.get("city") or "",
+                    " ".join(event.get("cities") or []),
+                    " ".join(event.get("top_tags") or []),
+                    " ".join(event.get("top_entities") or []),
+                    event.get("start") or "",
+                ]
+            )
+        )
+        for event in events
+    ]
+    doc_freq: Counter = Counter()
+    for doc in docs:
+        for term in set(doc):
+            doc_freq[term] += 1
+    avg_len = sum(len(d) for d in docs) / len(docs) if docs else 1.0
+    for query in queries:
+        if len(queries) > 1:
+            print(f"### {query}")
+        scores = bm25_scores(tokenize(query), docs, doc_freq, avg_len)
+        ranked = sorted(zip(scores, events), key=lambda pair: -pair[0])[:top_k]
+        for rank, (score, event) in enumerate(ranked, start=1):
+            if score <= 0 and rank > 1:
+                break
+            print(f"{rank:2d} | {score:6.2f} | {event_line(event)}")
+
+
+def show_event_members(event_id: str, events: list[dict], items: list[dict]) -> None:
+    event = next((e for e in events if e["event_id"] == event_id.strip()), None)
+    if event is None:
+        print(f"event {event_id} NOT FOUND")
+        return
+    print(f"== {event_line(event)}")
+    if event.get("summary"):
+        print(f"   summary: {event['summary']}")
+    by_id = {item["id"]: item for item in items}
+    for member_id in event.get("item_ids", []):
+        item = by_id.get(member_id)
+        if item is None:
+            print(f"   {member_id}")
+            continue
+        print(f"   {item['id']} | {item['type']:5s} | {item.get('ts') or '?'} | {item['text'][:70]}")
+    email_ids = event.get("email_ids") or []
+    if email_ids:
+        print(f"   emails: {', '.join(email_ids)}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Search personal memory (BM25 + metadata filters)")
     parser.add_argument("queries", nargs="*", help="one or MORE free-text queries (each searched separately)")
     parser.add_argument("--show", help="comma-separated ids: print compact records (one line each) instead of searching")
     parser.add_argument("--full", action="store_true", help="with --show: print the full projected record")
+    parser.add_argument("--events", action="store_true", help="search the EVENT index instead of items (needs organized_memory.json)")
+    parser.add_argument("--event", help="list an event's member items by event_id (e.g. --event P0042)")
     parser.add_argument("--top-k", type=int, default=12)
     parser.add_argument("--start", help="only items on/after this date (YYYY-MM-DD)")
     parser.add_argument("--end", help="only items on/before this date (YYYY-MM-DD)")
@@ -101,8 +172,21 @@ def main() -> None:
     if args.show:
         show_records(items, args.show.split(","), full=args.full)
         return
+    if args.event:
+        show_event_members(args.event, load_events(), items)
+        return
+    if args.events:
+        events = load_events()
+        if not events:
+            print("no event index available (organized_memory.json missing)")
+            sys.exit(1)
+        if not args.queries:
+            print("provide a query for --events")
+            sys.exit(1)
+        search_events(args.queries, events, args.top_k)
+        return
     if not args.queries:
-        print("provide at least one query, or --show <ids>")
+        print("provide at least one query, or --show <ids> / --events / --event <id>")
         sys.exit(1)
 
     def keep(item: dict) -> bool:
