@@ -54,16 +54,27 @@ def bm25_scores(query_tokens: list[str], docs: list[list[str]], doc_freq: Counte
     return scores
 
 
-def show_records(items: list[dict], ids: list[str]) -> None:
+def show_records(items: list[dict], ids: list[str], full: bool = False) -> None:
     by_id = {item["id"]: item for item in items}
     for record_id in ids:
         item = by_id.get(record_id.strip())
         if item is None:
             print(f"-- {record_id}: NOT FOUND")
             continue
+        detail = item.get("detail") or {}
+        if not full:
+            # compact one-liner: enough to verify time/place/content cheaply
+            caption = (detail.get("caption") or detail.get("detail") or item["text"])[:180].replace("\n", " ")
+            location = (detail.get("location") or "")[:60]
+            ocr = (detail.get("ocr") or "")[:40]
+            line = f"{item['id']} | {item['type']} | {item.get('ts') or '?'} | {(item.get('city') or '')[:24]} | {location} | {caption}"
+            if ocr:
+                line += f" | ocr:{ocr}"
+            print(line)
+            continue
         print(f"== {item['id']} | {item['type']} | {item.get('ts') or '?'} | {item.get('city') or ''}")
         print(f"   text: {item['text']}")
-        for key, value in (item.get("detail") or {}).items():
+        for key, value in detail.items():
             if not value:
                 continue
             if isinstance(value, list):
@@ -74,7 +85,8 @@ def show_records(items: list[dict], ids: list[str]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Search personal memory (BM25 + metadata filters)")
     parser.add_argument("queries", nargs="*", help="one or MORE free-text queries (each searched separately)")
-    parser.add_argument("--show", help="comma-separated ids: print full projected records instead of searching")
+    parser.add_argument("--show", help="comma-separated ids: print compact records (one line each) instead of searching")
+    parser.add_argument("--full", action="store_true", help="with --show: print the full projected record")
     parser.add_argument("--top-k", type=int, default=12)
     parser.add_argument("--start", help="only items on/after this date (YYYY-MM-DD)")
     parser.add_argument("--end", help="only items on/before this date (YYYY-MM-DD)")
@@ -87,7 +99,7 @@ def main() -> None:
         items = json.load(handle)
 
     if args.show:
-        show_records(items, args.show.split(","))
+        show_records(items, args.show.split(","), full=args.full)
         return
     if not args.queries:
         print("provide at least one query, or --show <ids>")
