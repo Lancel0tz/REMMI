@@ -121,6 +121,9 @@ agsys_normalize_memory_mode() {
     orgr5|organized_remmi5)
       mode="org_remmi5"
       ;;
+    orgr6|organized_remmi6)
+      mode="org_remmi6"
+      ;;
   esac
   echo "${mode}"
 }
@@ -161,6 +164,9 @@ agsys_memory_tag_suffix() {
       ;;
     org_remmi5)
       echo "orgr5"
+      ;;
+    org_remmi6)
+      echo "orgr6"
       ;;
     *)
       echo ""
