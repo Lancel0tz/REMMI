@@ -64,10 +64,25 @@ Six prompt/tool iterations on the retrieval-tool mode, all gpt-5-mini, 31 Qs:
 | 3 | slim --show, ≤4-cmd budget | 12.6 | 16.7 / 24.2 / 0.0 | 35k | 161k |
 | 4 | no budget + cheap tools + thoroughness | 21.7 | 33.3 / 39.3 / 0.0 | 101k | 420k |
 | 5 | + answer-type A/B (prose for open) | 25.6 | 0.0 / 41.0 / 23.1 | 87k | 358k |
-| **6** | **+ three-way typing (bare numbers)** | **35.5** | **33.3 / 41.8 / 30.8** | **87k** | **402k** |
+| 6 | + three-way typing (bare numbers) | 35.5 | 33.3 / 41.8 / 30.8 | 87k | 402k |
+| 7 | + event layer as tool (--events/--event) | 12.6→21.5 ✗ | 16.7 / 38.9 / 7.7 | 106k | 399k |
+| **8** | **v6 + pre-answer verification** | **38.3** | **33.3 / 40.7 / 38.5** | **95k** | **425k** |
 
-**v6 beats v1 on QS (+2.3) at −32% uncached / −26% billed tokens** — the best
-tokens-per-QS-point of every mode tested (351k vs baseline's 459k). Lessons:
+**v8 is the champion: QS 38.3 (+5.1 over v1, +17.9 ≈ 2× over baseline) at −26%
+uncached tokens vs v1**, tokens-per-QS-point 344k (all-time best; baseline 459k).
+The verification step (recall: one extra rephrased search + drop non-matching
+ids; numbers: recompute from booking emails, not photo timestamps; open-ended:
+every fact must come from a seen --full record) lifts open-ended 30.8 → 38.5.
+
+**v7 negative result (worth a paper paragraph):** offering the *generic* event
+index as a tool alongside item retrieval regressed everything (21.5). Photo-
+derived event boundaries corrupt night/day counting (stays end after photos
+stop), and event member lists make the agent stop searching (recall 8 ids → 2).
+The coarse layer *substitutes* for fine evidence — small answerers over-trust
+the cheap path. Same lesson as orgs-on-5.5: generic structure helps only weak
+retrieval; question-conditioned organisation is what scales.
+
+Lessons from the sweep:
 
 1. **Command-budget pressure destroys QS** (v2/v3): the agent answers from
    insufficient evidence. Token savings must come from cheaper *tools*, not
