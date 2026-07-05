@@ -179,6 +179,47 @@ Reproduce: `compare_modes.py --model-base gpt-5-mini-medium` renders this
 table from the run artifacts; raw eval outputs live under
 `output/QA_Agent/AgentSystems/atm-bench-hard/codex/gpt-5-mini-medium*/eval/`.
 
+## gpt-5.5 results (2026-07-05, all six legs complete)
+
+Same harness/judge, ChatGPT-plan quota (last 3 orgr questions via API billing).
+
+| Mode | QS ↑ | Uncached/Q | number / recall / open | Tok/QS-pt |
+|------|-----:|-----------:|:--:|----------:|
+| sgm (baseline) | 36.3 | 87k | 33.3 / 68.9 / 7.7 | 252k |
+| org_heuristic | 35.4 | 84k | 16.7 / 74.8 / 7.7 | **223k** |
+| org_static (pure) | 32.2 | 71k | 16.7 / 74.8 / 0.0 | 256k |
+| org_hybrid | 32.9 | 97k | 16.7 / 76.5 / 0.0 | 395k |
+| org_remmi (v1) | 33.2 | 67k | 33.3 / 69.1 / 0.0 | 262k |
+| **org_dynamic** | **49.8** | 93k | 33.3 / 62.1 / **46.2** | 270k |
+
+### The cross-model interaction (the headline finding)
+
+QS delta vs the same-model sgm baseline:
+
+| Mode | gpt-5-mini (weak) | gpt-5.5 (strong) |
+|------|---:|---:|
+| org_heuristic | −5.1 | −0.9 |
+| org_static (pure) | +4.3 | **−4.1** |
+| org_hybrid | +7.4 | **−3.4** |
+| org_remmi v1 | +12.8 | **−3.1** |
+| org_remmi8 (typed+verified) | **+17.9** | *(not yet run)* |
+| org_dynamic | +1.9 | **+13.5** |
+
+- **Weak answerer:** every scaffold helps (index +4~7, retrieval tool +13~18);
+  self-organisation helps least (+1.9) — mini cannot exploit its own timeline.
+- **Strong answerer:** every generic scaffold is neutral-to-harmful — 5.5
+  already retrieves well (baseline recall 68.9) and the scaffolds crowd out
+  its own working style (all index/tool modes drove open-ended to ~0).
+  Only **question-conditioned self-organisation wins, hugely** (+13.5;
+  open-ended 7.7 → 46.2).
+- Both regimes agree on the mechanism: what pays is organisation *conditioned
+  on the question*, produced *by the answerer itself* when it is strong, or
+  *scaffolded for it* (typed, verified retrieval) when it is weak.
+
+Open follow-up: org_remmi8's typed+verified prompt has not been run on 5.5 —
+whether careful scaffolding can beat 5.5's own organisation (49.8) is the next
+experiment.
+
 ## Running locally
 
 ```bash
