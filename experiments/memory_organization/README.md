@@ -202,7 +202,7 @@ QS delta vs the same-model sgm baseline:
 | org_static (pure) | +4.3 | **−4.1** |
 | org_hybrid | +7.4 | **−3.4** |
 | org_remmi v1 | +12.8 | **−3.1** |
-| org_remmi8 (typed+verified) | **+17.9** | **−4.4** |
+| org_remmi8 (typed+verified) | **+17.9** | **−3.5** |
 | org_dynamic | +1.9 | **+13.5** |
 
 - **Weak answerer:** every scaffold helps (index +4~7, retrieval tool +13~18);
@@ -217,9 +217,9 @@ QS delta vs the same-model sgm baseline:
   *scaffolded for it* (typed, verified retrieval) when it is weak.
 
 **Showdown result (2026-07-05): the scaffold loses on the strong answerer.**
-org_remmi8 on gpt-5.5 scores **31.9** — below baseline (36.3), open-ended 0.0
+org_remmi8 on gpt-5.5 scores **32.8** (31/31 complete) — below baseline (36.3), open-ended 0.0
 (the mandated tool workflow crowds out 5.5's own broad-read-then-narrate style,
-exactly like orgr v1). The 2×2 is symmetric: scaffolding +17.9 / −4.4
+exactly like orgr v1). The 2×2 is symmetric: scaffolding +17.9 / −3.5
 (weak/strong), self-organisation +1.9 / +13.5. **Scaffolding and capability are
 substitutes, not complements — the optimal organisation policy inverts with
 answerer strength.** Per-model champions: mini → org_remmi8 (38.3); 5.5 →
