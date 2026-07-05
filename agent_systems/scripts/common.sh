@@ -248,11 +248,13 @@ agsys_answer_valid() {
 }
 
 agsys_array_append_flag_if_value() {
-  local -n target_array="$1"
+  # `local -n` (nameref) is bash 4.3+; stock macOS ships bash 3.2, so append
+  # to the named array via eval instead.
+  local array_name="$1"
   local flag="$2"
   local value="$3"
   if [[ -n "${value}" ]]; then
-    target_array+=("${flag}" "${value}")
+    eval "${array_name}+=(\"\${flag}\" \"\${value}\")"
   fi
 }
 
