@@ -216,7 +216,32 @@ QS delta vs the same-model sgm baseline:
   on the question*, produced *by the answerer itself* when it is strong, or
   *scaffolded for it* (typed, verified retrieval) when it is weak.
 
-**Showdown result (2026-07-05): the scaffold loses on the strong answerer.**
+### Tool-optional (org_remmi9): presence vs mandate — the refined finding
+
+Separating tool PRESENCE from tool MANDATE (org_dynamic's exact prompt + a
+neutral "search.py exists, entirely optional" paragraph):
+
+| 5.5 | tool mandated (orgr8) | no tool (orgd) | **tool OPTIONAL (orgr9)** |
+|---|---:|---:|---:|
+| QS | 32.8 | 49.8 | **56.1** |
+| recall | 68.1 | 62.1 | **78.2** |
+| open-ended | 0.0 | 46.2 | **46.2** |
+
+| mini | no tool (orgd) | tool optional (orgr9) | tool + full discipline (orgr8) |
+|---|---:|---:|---:|
+| QS | 22.3 | 25.2 | **38.3** |
+
+Both answerers voluntarily adopt the tool (~7 searches/Q, raw reads drop to
+~2.8/Q). The strong answerer keeps its own open-ended workflow while letting
+retrieval lift recall (+16): best of both pillars, **new overall champion 56.1
+(+19.8 over baseline)**. The weak answerer adopts the tool but cannot exploit
+it without the full scaffold (+2.9 vs +17.9).
+
+**Refined headline: the retrieval tool is a complement for everyone; it is
+WORKFLOW CONTROL that substitutes for capability.** Weak answerers need
+mandates and discipline; strong answerers need freedom with tools available.
+
+**Showdown result (2026-07-05): the mandated scaffold loses on the strong answerer.**
 org_remmi8 on gpt-5.5 scores **32.8** (31/31 complete) — below baseline (36.3), open-ended 0.0
 (the mandated tool workflow crowds out 5.5's own broad-read-then-narrate style,
 exactly like orgr v1). The 2×2 is symmetric: scaffolding +17.9 / −3.5
