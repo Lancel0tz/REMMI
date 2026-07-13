@@ -253,6 +253,13 @@ while IFS= read -r QID; do
     cp "${MEMORY_CACHE_DIR}/search_corpus.json" "${WORKSPACE_DIR}/memory/search_corpus.json"
     cp "${MEMORY_CACHE_DIR}/search.py" "${WORKSPACE_DIR}/memory/search.py"
   fi
+  # org_inject: inject this question's offline pre-organised events (query_events.json).
+  # Per-question file selected by QID from AGSYS_DYNAMIC_EVENTS_DIR (built by
+  # `python -m remmi.organize.dynamic_inject`). Distinct from org_dynamic, where
+  # the agent self-organises at run time.
+  if [[ -n "${AGSYS_DYNAMIC_EVENTS_DIR:-}" ]] && [[ -f "${AGSYS_DYNAMIC_EVENTS_DIR}/${QID}.json" ]]; then
+    cp "${AGSYS_DYNAMIC_EVENTS_DIR}/${QID}.json" "${WORKSPACE_DIR}/memory/query_events.json"
+  fi
   if [[ "${MEMORY_MODE}" == "raw" ]]; then
     if [[ "${SANDBOX_ACTIVE}" == "bwrap" ]]; then
       mkdir -p "${WORKSPACE_DIR}/memory/raw_images" "${WORKSPACE_DIR}/memory/raw_videos"

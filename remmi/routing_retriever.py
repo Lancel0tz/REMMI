@@ -58,6 +58,7 @@ from remmi.hybrid_retriever import (
     HybridScoringConfig,
     QueryConstraints,
     RetrievalResult,
+    _has_visual_hint,
     _minmax,
     _ranks_from_scores,
     _tokenize,
@@ -293,8 +294,9 @@ def analyze_query(query: str) -> QuerySignals:
     elif re.search(r"\bhelp\s+me\s+find\b|\brecall\b|\bfind\s+(?:that|the)\s+photo\b", query, re.I):
         qtype_hint = "list_recall"
 
-    # Visual hint: mentions photos/images/videos or visual objects/scenes
-    has_visual_hint = bool(_VISUAL_QUERY_RE.search(query))
+    # Visual hint: tight/loose gate (ATM_VISUAL_GATE, default tight) + optional
+    # LLM query understanding (ATM_QUERY_LLM), shared with the hybrid retriever.
+    has_visual_hint = _has_visual_hint(query)
 
     return QuerySignals(
         keyword_score=keyword_score,

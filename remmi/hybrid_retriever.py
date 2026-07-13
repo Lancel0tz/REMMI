@@ -22,6 +22,8 @@ laptop. LLM-based extraction is a planned follow-up for ambiguous queries
 from __future__ import annotations
 
 import math
+import json
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -262,6 +264,28 @@ def parse_query_constraints(
                 date_range = None
 
     locations = _extract_locations(q, gazetteer=gazetteer)
+
+    # LLM query 理解: replace(默认)=LLM 抽到就替代; augment=heuristic 先跑+LLM 补漏
+    # (地点并集, 日期 heuristic 优先、LLM 补漏)。设 ATM_QUERY_LLM 指向 by_text map 才生效。
+    m = _query_llm_map()
+    if m is not None and query in m:
+        mode = os.environ.get("ATM_QUERY_MODE", "replace").lower()
+        info = m[query]
+        llm_locs = [str(x).strip().lower() for x in (info.get("locations") or []) if str(x).strip()]
+        if mode == "replace":
+            if llm_locs:
+                locations = llm_locs
+        else:  # augment: 并集 (heuristic ∪ LLM, 去重保序)
+            locations = list(dict.fromkeys(list(locations) + llm_locs))
+        ds, de = info.get("date_start"), info.get("date_end")
+        if ds and de:
+            try:
+                llm_range = (date.fromisoformat(ds[:10]), date.fromisoformat(de[:10]))
+                if mode == "replace" or date_range is None:
+                    date_range = llm_range
+            except ValueError:
+                pass
+
     return QueryConstraints(date_range=date_range, locations=locations, today=today)
 
 
@@ -296,8 +320,55 @@ _VISUAL_QUERY_RE = re.compile(
 )
 
 
+# 收紧版门控 (ATM_VISUAL_GATE=tight, 默认): 只在出现具体视觉物体/场景 (靠外观辨识)
+# 时触发, 砍掉食物词簇 (dessert/food/dish/cake → 餐厅/地点题误触发) 和过泛的通用媒体词
+# (photo/video/collection/find all → 事件/人物/地点题误触发)。保留 list-recall 的物体识别类。
+# hard set 上收紧后视觉子集 R@10 46→51, 整体转正 (+1.5); 设 ATM_VISUAL_GATE=default 回退 loose。
+_VISUAL_QUERY_RE_TIGHT = re.compile(
+    r"""
+      \bsheep\b | \bcat\b | \bdog\b | \bflower\b | \bbird\b | \banimal\b
+    | \bbridge\b | \btower\b | \bcastle\b | \bmuseum\b | \bbuilding\b
+    | \bsunset\b | \bsunrise\b | \bbeach\b | \bmountain\b | \bscenery\b
+    | \blandmark\b | \bmonument\b | \bstatue\b
+    | \bbadge(?:s)?\b | \bposter(?:s)?\b | \bsign(?:s|board)?\b
+    | \bslide(?:s)?\b | \blogo(?:s)?\b | \boutfit\b | \bdress\b | \bclothes\b
+    | \blook(?:s|ed)?\s+like\b | \blooked?\b
+    | \bwhat\s+(?:animal|building|object|place|scene|color|colour)\b
+    | \bcolou?r\s+of\b
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+# ── LLM query 理解 (替代正则/gazetteer 的 query 识别) ──────────────────────────
+# 设 ATM_QUERY_LLM=<path> 指向 LLM query-extraction 输出 (by_text map:
+# {query: {visual, locations, date_start, date_end}}), 则视觉/地点/日期改用 LLM 抽取;
+# heuristic 仍作 fallback (query 不在 map 里)。channels/权重/融合一律不变。
+_QUERY_LLM_MAP = None
+_QUERY_LLM_LOADED = False
+
+
+def _query_llm_map():
+    global _QUERY_LLM_MAP, _QUERY_LLM_LOADED
+    if not _QUERY_LLM_LOADED:
+        _QUERY_LLM_LOADED = True
+        path = os.environ.get("ATM_QUERY_LLM", "")
+        if path and os.path.exists(path):
+            with open(path, encoding="utf-8") as fh:
+                _QUERY_LLM_MAP = json.load(fh).get("by_text", {})
+    return _QUERY_LLM_MAP
+
+
 def _has_visual_hint(query: str) -> bool:
-    return bool(_VISUAL_QUERY_RE.search(query or ""))
+    gate = os.environ.get("ATM_VISUAL_GATE", "tight").lower()
+    rx = _VISUAL_QUERY_RE if gate == "default" else _VISUAL_QUERY_RE_TIGHT
+    heur = bool(rx.search(query or ""))
+    m = _query_llm_map()
+    if m is not None and query in m:
+        llm = bool(m[query].get("visual"))
+        mode = os.environ.get("ATM_QUERY_MODE", "replace").lower()
+        # replace(默认) = 纯 LLM; augment = heuristic 先跑 + LLM 补漏 (并集 OR)
+        return llm if mode == "replace" else (heur or llm)
+    return heur
 
 
 # ---------------------------------------------------------------------------

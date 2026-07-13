@@ -14,7 +14,8 @@ answering, evaluated on the ATM-Bench agent harness (`agent_systems/`).
 
 | Mode | What happens | Sandbox memory files |
 |------|--------------|----------------------|
-| `org_dynamic` | **Dynamic (per-question) organisation.** The answering agent explores only the memory relevant to the current question, organises it into a scratch `timeline.md`, then answers from that view. Prompt-only variant. | SGM (unchanged) |
+| `org_dynamic` | **Dynamic (per-question) organisation, SELF-organise.** The answering agent explores only the memory relevant to the current question, organises it into a scratch `timeline.md`, then answers from that view. Prompt-only variant (agent pays the organise cost in-session). | SGM (unchanged) |
+| `org_inject` | **Dynamic (per-question) organisation, OFFLINE pre-organise + INJECT.** An LLM organises each question's top-N retrieved items into events *offline* (`remmi/organize/dynamic_inject.py`); the harness injects that question's events as `memory/query_events.json` at run time (`AGSYS_DYNAMIC_EVENTS_DIR`). The answerer reads a focused shortlist instead of paying to organise in-session — the offline counterpart to `org_dynamic`. | SGM + per-question `query_events.json` |
 | `org_static` | **Static (full upfront) agent organisation.** An LLM organiser reworks the *whole* corpus into titled/summarised events offline (`remmi/organize/agent_static.py`, map-reduce over an OpenAI-compatible endpoint); the answering agent reads that index. | SGM + LLM-built `organized_memory.json` |
 | `org_heuristic` | **Pure heuristic organisation.** Deterministic day-gap + city-change clustering into events/trips (`remmi/organize/heuristic.py`); no LLM. On the real corpus: 4,292 items → ~264 events (~131 trips), index ≈ 0.8 MB vs 29 MB full SGM. | SGM + heuristic `organized_memory.json` |
 
@@ -36,6 +37,40 @@ Setting: Qwen3.6-27B answerer, Pi harness, ATM-Bench-Hard.
   multi-evidence aggregation step.
 
 Treat these as hypotheses to re-verify with the scripts below, not as numbers.
+
+### Server-reproduced Qwen3.6-27B / Pi runs (2026-07, ATM-Bench-Hard, 31 Q)
+
+The original cluster came back up; these are **actual reproduced numbers** on the
+original setting (Qwen3.6-27B answerer, Pi harness, ATM judge `gpt-5-mini`,
+3-judge mean). Full-cycle token = agent run-time + one-time build cost. This is
+the setting the recalled findings above refer to — and it inverts several of the
+Codex/GPT-5-mini conclusions (organisation *helps* the mid-strength Qwen answerer).
+
+| Mode | QS (3-judge) | Full-cycle token | turns | Build cost |
+|------|-------------:|-----------------:|------:|-----------:|
+| `sgm` (baseline) | 35.7 | 8.06M | 320 | — |
+| `org_heuristic` (rich graph) | 31.0 (33.1/29.9/29.9) | 8.75M | 436 | 0 (no LLM) |
+| `org_static` (2-pass LLM graph) | 41.7 (38.4/41.7/44.9) | 8.58M | 426 | 158k once |
+| **`org_inject`** (offline pre-organise + inject) | **43.7** (43.7/43.7/43.7) | **4.86M** | **276** | 30k (per-Q offline) |
+| `org_dynamic` (self-organise) | *pending (queued)* | — | — | — |
+
+- **`org_inject` is the winner on Qwen/Pi**: highest QS (43.7, +8 over baseline) AND
+  lowest tokens (4.86M, −40%) AND fewest turns — the focused per-question shortlist
+  lets the answerer skip in-session exploration. Zero judge variance.
+- **`org_static` (2-pass LLM graph)** is second (+6.0); the LLM-decided event/theme
+  boundaries give a coherent multi-evidence view (cost: 158k one-time build).
+- **`org_heuristic` (rich graph) HURT** (−4.7, below baseline) despite being the
+  *structurally richest* index (multi-level trip>activity>item + tag/city/meal
+  themes, multi-membership). Mechanical theme buckets (e.g. "Nature 1231 items",
+  "City: Cambridge 1347 items") are huge and undifferentiated — the agent drills
+  in, gets a flat list, and wanders (highest turn count). **Organisation *semantic
+  quality* beats structural richness; this replicates the Codex "index quality,
+  not index existence" finding.** (The rich-heuristic builder was prototyped on the
+  server; not ported here — kept as a documented negative result.)
+- The `org_dynamic` (self-organise) leg is queued on GPU; it is the direct
+  self-organise-vs-inject comparison at fixed Qwen/Pi (both are per-question,
+  question-conditioned — the only difference is *who pays the organise cost and
+  when*). Table will be updated when it lands.
 
 ## Held-out generalization (out-of-distribution overfit check)
 
@@ -361,7 +396,13 @@ Results land under the usual `agent_systems` flow (run tags get an `orgh`/
 
 - `remmi/organize/heuristic.py` — day-gap clustering (+ CLI); unit tests in
   `remmi/organize/test_organize.py`
-- `remmi/organize/agent_static.py` — LLM full-corpus organiser (CLI)
+- `remmi/organize/agent_static.py` — LLM full-corpus organiser (CLI); strategies:
+  `seeded`, `pure`, and `graph_2pass` (per-day segmentation → per-trip themes,
+  multi-membership graph — the `org_static` 2-pass port)
+- `remmi/organize/dynamic_inject.py` — per-question OFFLINE organiser (CLI); builds
+  `<qid>.json` events for `org_inject` injection
+- `agent_systems/prompts/system_prompt_org_inject.txt` — read-the-injected-events prompt
+- `experiments/memory_organization/run_pi_org_inject.sh` — org_inject run wrapper (Pi)
 - `agent_systems/memory_variants.py` — `org_*` sandbox build modes
 - `agent_systems/prompts/system_prompt_org.txt` — index-first answering prompt
 - `agent_systems/prompts/system_prompt_org_dynamic.txt` — organize-then-answer prompt

@@ -38,6 +38,7 @@ import json
 import os
 import time
 import urllib.request
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -346,6 +347,188 @@ def organize_pure(
     }
 
 
+# --------------------------------------------------------------------------
+# 2-pass event-graph strategy
+# --------------------------------------------------------------------------
+#
+# Ported from ATM-Bench/scripts/build_event_graph.py. Two LLM passes build a
+# multi-membership graph instead of a flat event list:
+#
+#   Pass 1 (per day) — the LLM segments one day's chronological items into
+#       EVENTS; one item may join multiple events (a meal captured mid-walk).
+#   Pass 2 (per trip) — trips are recovered by the repo's day-gap heuristic
+#       (``cluster_events`` with ``kind == "trip"``); the LLM labels each trip
+#       and extracts CROSS-CUTTING THEMES (food, talks, sightseeing...) that
+#       span its events.
+#
+# Output schema mirrors the server: {nodes, edges, item2nodes (multi-membership
+# map), tokens, n_trips, n_events}. node types are event | trip | theme.
+
+GRAPH_PASS1_SYSTEM = """You segment a person's chronological photos on ONE day into EVENTS (a meal, a visit, a talk, a walk...).
+One photo may belong to multiple events.
+Respond with ONLY JSON: {"events": [{"label": "<short>", "members": [<idx>, ...]}, ...]} covering the given items. No other text."""
+
+GRAPH_PASS2_SYSTEM = """A trip's sub-events are listed. Give the trip a short label, and find CROSS-CUTTING THEMES (food, talks, people, sightseeing...) that span its events.
+Respond with ONLY JSON: {"trip_label": "<short>", "themes": [{"label": "<short>", "event_ids": ["<event id>", ...]}, ...]}. No other text."""
+
+
+def _parse_json_object(raw: str) -> dict[str, Any] | None:
+    """Extract the first JSON object from a chat reply (tolerant of fences/prose)."""
+    text = raw or ""
+    start, end = text.find("{"), text.rfind("}")
+    if start < 0 or end <= start:
+        return None
+    try:
+        parsed = json.loads(text[start : end + 1])
+    except Exception:  # noqa: BLE001 - malformed reply -> caller falls back
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _graph_day_line(index: int, item: Any) -> str:
+    ts = item.timestamp.strftime("%H:%M") if item.timestamp else "??:??"
+    city = (item.city or "?").split(",")[0]
+    return f"[{index}] {ts} | {city} | {item.short_caption[:60]}"
+
+
+def organize_graph_2pass(
+    image_source: Path,
+    video_source: Path,
+    emails_source: Path | None,
+    *,
+    base_url: str,
+    model: str,
+    gap_days: int = 2,
+) -> dict[str, Any]:
+    """2-pass LLM event-graph organiser (per-day events -> per-trip themes).
+
+    Builds a multi-membership graph rather than a flat event list. Item ids are
+    never emitted in free text: the LLM segments by numbered index (Pass 1) and
+    by event id (Pass 2), so ids can never be corrupted.
+    """
+    items = load_media_items(image_source, video_source)
+    dated = sorted((i for i in items if i.day is not None), key=lambda i: i.timestamp)  # type: ignore[arg-type]
+
+    # Group dated items by calendar day (Pass 1 input).
+    by_day: dict[Any, list[Any]] = {}
+    for item in dated:
+        by_day.setdefault(item.day, []).append(item)
+    days = sorted(by_day)
+
+    nodes: dict[str, dict[str, Any]] = {}
+    edges: list[list[str]] = []
+    item2nodes: dict[str, list[str]] = {}
+
+    def _add_membership(item_id: str, node_id: str) -> None:
+        item2nodes.setdefault(item_id, []).append(node_id)
+
+    # ── Pass 1: per-day segmentation into events (multi-membership) ──
+    ev_by_day: dict[Any, list[str]] = {}
+    ev_idx = 0
+    for day in days:
+        day_items = by_day[day]
+        events: list[dict[str, Any]]
+        if len(day_items) <= 1:
+            label = (day_items[0].short_caption or "moment")[:40] if day_items else "empty"
+            events = [{"label": label, "item_ids": [i.item_id for i in day_items]}]
+        else:
+            lines = "\n".join(_graph_day_line(i, m) for i, m in enumerate(day_items))
+            raw = chat(
+                [
+                    {"role": "system", "content": GRAPH_PASS1_SYSTEM},
+                    {"role": "user", "content": f"Photos:\n{lines}"},
+                ],
+                base_url=base_url,
+                model=model,
+            )
+            parsed = _parse_json_object(raw)
+            events = []
+            for event in (parsed or {}).get("events", []) or []:
+                ids = [day_items[i].item_id for i in event.get("members", []) if isinstance(i, int) and 0 <= i < len(day_items)]
+                if ids:
+                    events.append({"label": str(event.get("label", "event")), "item_ids": ids})
+            if not events:  # fallback: whole day is one event, ids never lost
+                events = [{"label": "day", "item_ids": [i.item_id for i in day_items]}]
+
+        day_key = day.isoformat()
+        ev_by_day[day] = []
+        for event in events:
+            eid = f"ev{ev_idx}"
+            ev_idx += 1
+            nodes[eid] = {"type": "event", "label": event["label"], "date": day_key, "members": event["item_ids"]}
+            ev_by_day[day].append(eid)
+            for item_id in event["item_ids"]:
+                _add_membership(item_id, eid)
+        print(f"  pass1: {day_key} -> {len(events)} events ({ev_idx} total)")
+
+    # ── Pass 2: trip grouping (repo heuristic) + per-trip themes ──
+    trips = [e for e in cluster_events(items, HeuristicConfig(gap_days=gap_days)) if e["kind"] == "trip"]
+    trip_idx = 0
+    for trip in trips:
+        d0 = date.fromisoformat(trip["start"])
+        d1 = date.fromisoformat(trip["end"])
+        eids = [eid for day in days if d0 <= day <= d1 for eid in ev_by_day[day]]
+        if not eids:
+            continue
+        lines = "\n".join(f"[{eid}] {nodes[eid]['date']} {nodes[eid]['label'][:50]}" for eid in eids)
+        raw = chat(
+            [
+                {"role": "system", "content": GRAPH_PASS2_SYSTEM},
+                {"role": "user", "content": f"Sub-events:\n{lines}"},
+            ],
+            base_url=base_url,
+            model=model,
+        )
+        parsed = _parse_json_object(raw) or {}
+
+        tid = f"trip{trip_idx}"
+        trip_idx += 1
+        members = sorted({m for eid in eids for m in nodes[eid]["members"]})
+        nodes[tid] = {
+            "type": "trip",
+            "label": parsed.get("trip_label") or f"Trip {trip['start']}",
+            "date_start": trip["start"],
+            "date_end": trip["end"],
+            "nights": (d1 - d0).days,
+            "cities": trip["cities"],
+            "event_ids": eids,
+            "members": members,
+        }
+        for eid in eids:
+            edges.append([eid, tid])
+        for item_id in members:
+            _add_membership(item_id, tid)
+
+        for order, theme in enumerate(parsed.get("themes", []) or []):
+            theme_eids = [e for e in theme.get("event_ids", []) if e in nodes]
+            theme_members = sorted({m for e in theme_eids for m in nodes[e]["members"]})
+            if not theme_members:
+                continue
+            thid = f"{tid}_th{order}"
+            nodes[thid] = {
+                "type": "theme",
+                "label": str(theme.get("label", "theme")),
+                "trip": tid,
+                "event_ids": theme_eids,
+                "members": theme_members,
+            }
+            for item_id in theme_members:
+                _add_membership(item_id, thid)
+    print(f"  pass2: {trip_idx} trips -> {len(nodes)} nodes")
+
+    return {
+        "generated_by": "remmi.organize.agent_static:graph_2pass",
+        "params": {"model": model, "gap_days": gap_days},
+        "home_city": home_city(items),
+        "n_events": ev_idx,
+        "n_trips": trip_idx,
+        "nodes": nodes,
+        "edges": edges,
+        "item2nodes": item2nodes,
+        "tokens": dict(USAGE_TOTALS),
+    }
+
+
 def main() -> None:
     import argparse
 
@@ -356,10 +539,11 @@ def main() -> None:
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument(
         "--strategy",
-        choices=("pure", "seeded"),
+        choices=("pure", "seeded", "graph_2pass"),
         default="pure",
         help="pure: the LLM decides every event boundary at item level (default). "
-        "seeded: heuristic day-gap clustering first, LLM only merges/labels seeds.",
+        "seeded: heuristic day-gap clustering first, LLM only merges/labels seeds. "
+        "graph_2pass: 2-pass event graph (per-day events -> per-trip themes) with multi-membership.",
     )
     parser.add_argument("--batch-size", type=int, default=40, help="(seeded) seed events per LLM call")
     parser.add_argument("--gap-days", type=int, default=2, help="(seeded) heuristic gap")
@@ -379,6 +563,15 @@ def main() -> None:
             model=model,
             chunk_items=args.chunk_items,
         )
+    elif args.strategy == "graph_2pass":
+        payload = organize_graph_2pass(
+            args.image_source,
+            args.video_source,
+            args.emails_source,
+            base_url=base_url,
+            model=model,
+            gap_days=args.gap_days,
+        )
     else:
         payload = organize_with_agent(
             args.image_source,
@@ -393,7 +586,13 @@ def main() -> None:
     with open(args.out, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=1)
         handle.write("\n")
-    print(f"organized {payload['event_count']} events ({payload['trip_count']} trips) -> {args.out}")
+    if args.strategy == "graph_2pass":
+        print(
+            f"built graph: {len(payload['nodes'])} nodes, {payload['n_events']} events, "
+            f"{payload['n_trips']} trips -> {args.out}"
+        )
+    else:
+        print(f"organized {payload['event_count']} events ({payload['trip_count']} trips) -> {args.out}")
     print(
         f"organiser usage: {USAGE_TOTALS['calls']} calls, "
         f"{USAGE_TOTALS['input_tokens']:,} in + {USAGE_TOTALS['output_tokens']:,} out tokens"

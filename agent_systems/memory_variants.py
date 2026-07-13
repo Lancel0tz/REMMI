@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-VALID_MEMORY_MODES = ("sgm", "raw", "descriptive", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7", "org_remmi8", "org_remmi9")
+VALID_MEMORY_MODES = ("sgm", "raw", "descriptive", "org_heuristic", "org_static", "org_dynamic", "org_inject", "org_hybrid", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7", "org_remmi8", "org_remmi9")
 
 
 def normalize_memory_mode(mode: str) -> str:
@@ -30,6 +30,8 @@ def normalize_memory_mode(mode: str) -> str:
         "organized_static": "org_static",
         "orgd": "org_dynamic",
         "organized_dynamic": "org_dynamic",
+        "orgi": "org_inject",
+        "organized_inject": "org_inject",
         "orgx": "org_hybrid",
         "organized_hybrid": "org_hybrid",
         "orgr": "org_remmi",
@@ -214,7 +216,7 @@ def build_memory_variant(
     video_records = load_json_list(video_source)
 
     media_manifest: dict[str, Any] = {}
-    if mode in ("sgm", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7", "org_remmi8", "org_remmi9"):
+    if mode in ("sgm", "org_heuristic", "org_static", "org_dynamic", "org_inject", "org_hybrid", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7", "org_remmi8", "org_remmi9"):
         # Organized modes keep the full SGM per-item files (recall questions
         # must still answer with exact item ids); org_heuristic/org_static/
         # org_hybrid add a compact event index on top, org_dynamic changes only
