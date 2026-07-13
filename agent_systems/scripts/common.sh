@@ -133,6 +133,12 @@ agsys_normalize_memory_mode() {
     orgr9|organized_remmi9)
       mode="org_remmi9"
       ;;
+    remmi)
+      mode="org_remmi9"
+      ;;
+    remmi_weak|remmi_scaffold)
+      mode="org_remmi8"
+      ;;
   esac
   echo "${mode}"
 }

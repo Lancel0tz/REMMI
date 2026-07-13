@@ -1,0 +1,629 @@
+[
+ {
+  "id": "b4586938-ac33-40c0-a2dd-a2a361398f67",
+  "question": "Today is March 21, 2023. When is the Robotics meeting today?",
+  "answer": "17:00 to 18:00",
+  "notes": "",
+  "evidence_ids": [
+   "email202303210005"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "500f1059-8d20-4bd7-be43-32ef39bee511",
+  "question": "Recall the photos I took during my visit to a museum at the Newcastle University. ",
+  "answer": "20230904_144627, 20230905_152531, 20230905_152540, 20230905_152605, 20230905_153314, 20230905_153627 ",
+  "notes": "",
+  "evidence_ids": [
+   "20230905_144627",
+   "20230905_152531",
+   "20230905_152540",
+   "20230905_152605",
+   "20230905_153314",
+   "20230905_153627"
+  ],
+  "qtype": "list_recall"
+ },
+ {
+  "id": "01eec76c-462f-4579-9a7b-974da414a888",
+  "question": "I remember taking a photo of the shadow of the aircraft I was flying in. Can you help me recall that image?",
+  "answer": "20231215_141752",
+  "notes": "",
+  "evidence_ids": [
+   "20231215_141752"
+  ],
+  "qtype": "list_recall"
+ },
+ {
+  "id": "394fb3a7-cffe-478c-8c97-656e59f60d08",
+  "question": "Can you help me find all the photos I took of St Michael’s Mount?",
+  "answer": "The photos of St Michael’s Mount are:\n\n20230418_135743, 20230418_135752, 20230418_135850, 20230418_195315, 20230418_195319, 20230418_195350.",
+  "notes": "",
+  "evidence_ids": [
+   "20230418_135743",
+   "20230418_135752",
+   "20230418_135850",
+   "20230418_195315",
+   "20230418_195319",
+   "20230418_195350"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "ae25652a-780b-47b0-9f82-3851054f9664",
+  "question": "Help me locate the videos where I saw someone feeding a bunch of birds on a hill, tell me the ids of the videos. ",
+  "answer": "20220619_194946, 20220619_195055",
+  "notes": "",
+  "evidence_ids": [
+   "20220619_194946",
+   "20220619_195055"
+  ],
+  "qtype": "list_recall"
+ },
+ {
+  "id": "4e4680db-9c46-4ab5-be09-f3d010414372",
+  "question": "I remember taking a photo of two pyramids together. Help me find that photo.",
+  "answer": "20240806_093456.",
+  "notes": "",
+  "evidence_ids": [
+   "20240806_093456"
+  ],
+  "qtype": "list_recall"
+ },
+ {
+  "id": "be47b42d-f8e4-4c3c-8bcc-246d9b0fee66",
+  "question": "Where did I fly to in late September 2024?",
+  "answer": "Milano.",
+  "notes": "",
+  "evidence_ids": [
+   "20240929_181919"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "aca8d6a0-e757-424a-ae69-c3a33d9b6950",
+  "question": "I remember that on the last night of NeurIPS 2023, there was a parade. Where did I see it?",
+  "answer": "300, Decatur Street, French Quarter, New Orleans",
+  "notes": "",
+  "evidence_ids": [
+   "20231214_190420",
+   "20231214_190459"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "93a4a015-4556-4c36-a5e6-b16b95620799",
+  "question": "When will my supervisor attend NAACL 2024?",
+  "answer": "June 16-21, 2024.",
+  "notes": "",
+  "evidence_ids": [
+   "email202404070002"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "cd0e4ec5-5748-4b8f-9e2e-2fb796375965",
+  "question": "When did my friend carve a mango into the shape of a shark?",
+  "answer": "January 22, 2023.",
+  "notes": "",
+  "evidence_ids": [
+   "20230122_211745"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "4901e1a7-ff9d-47a3-bc2c-e4a80f3f1f9d",
+  "question": "I remember visiting a garden with pink and red tulips and some cherry blossoms. What was that place?",
+  "answer": " Zhujiajiao, Qingpu District, Shanghai.",
+  "notes": "",
+  "evidence_ids": [
+   "20230319_110412",
+   "20230319_110704",
+   "20230319_110743"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "54afc42a-ee9c-4415-9598-3f920bbfa31a",
+  "question": "Today is Jun 9, 2024. I remember a team lunch at my place back in May, where I roasted some meat ribs. Which day was that?",
+  "answer": "May 11, 2024.",
+  "notes": "",
+  "evidence_ids": [
+   "20240511_131835",
+   "20240511_132342",
+   "20240511_132346"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "ba0dde2d-6e3a-4796-bb7d-b05d4ad18bbd",
+  "question": "Today is February 14, 2022. When is the next CLIC workshop on Adaptability Skills?",
+  "answer": "February 24, 2022, at 16:00",
+  "notes": "",
+  "evidence_ids": [
+   "email202202070002"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "1c9d9fee-8286-47cf-91d8-b153f0323906",
+  "question": "I remember I had a great dinner with friends in Brighton that night, we had seafoods and other dishes. Which restaurant was that?",
+  "answer": "Beach Hotel, 1-4, Regency Square, Brunswick, Hove, Brighton, Brighton and Hove, England, BN1 2FG, United Kingdom.",
+  "notes": "",
+  "evidence_ids": [
+   "20240602_184011",
+   "20240602_184025",
+   "20240602_185634",
+   "20240602_185637",
+   "20240602_192435",
+   "20240602_193229"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "03e12392-fdba-400a-945b-fe22b0d16978",
+  "question": "When did I receive my printed photo gallery?",
+  "answer": "January 16, 2023.",
+  "notes": "",
+  "evidence_ids": [
+   "20230116_222320",
+   "20230116_222400"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "f728549c-388a-4a36-9ac1-a1b50a8cf744",
+  "question": "When are the CUED Open Days in July 2025?",
+  "answer": "July 10th and 11th from 1:00 PM to 4:30 PM.",
+  "notes": "",
+  "evidence_ids": [
+   "email202507090005"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "74e5bc78-af16-4e75-869b-aea32fdc5e21",
+  "question": "I recall seeing a pair of calligraphy scrolls in Robinson College signed by a famous martial arts novelist. Who is the signatory I saw?",
+  "answer": "Jin Yong.",
+  "notes": "",
+  "evidence_ids": [
+   "20240701_213206",
+   "20240701_213209"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "f2467c3e-d75a-40f9-8ed9-3cfcd16acbb5",
+  "question": "I saw a sphinx at The Egyptian Museum Cairo. Who was that for?",
+  "answer": "Queen Hatshepsut.",
+  "notes": "",
+  "evidence_ids": [
+   "20240730_162323"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "3227e8e2-7397-4bbb-958e-13656a7af1e9",
+  "question": "What is the deadline to apply for the Vacation Residence Grant for 2022 Easter Vacation?",
+  "answer": "5 pm on Friday, May 6th.",
+  "notes": "",
+  "evidence_ids": [
+   "email202204260004"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "dae9191d-66ce-41e7-9736-9b9885192a41",
+  "question": "I took a photo of the main course at an all-plant-based formal dinner. It looked like a piece of cake but was savory. What exactly was that dish?",
+  "answer": "Harissa Spiced Cauliflower Cake.",
+  "notes": "",
+  "evidence_ids": [
+   "20240611_191700",
+   "20240611_191703",
+   "20240611_200334"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "afd0eb8c-373d-47c4-8f42-aaa41c2cb700",
+  "question": "I had a very good meal with beef and fish in Scotland. What was the name of that restaurant?",
+  "answer": "Café Bohème.",
+  "notes": "",
+  "evidence_ids": [
+   "20220626_200928",
+   "20220626_200945",
+   "20220626_204811"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "fadf2286-8319-4a22-bd20-724a3471afa2",
+  "question": "Where did I have pizza near the dead sea?",
+  "answer": "65, Shoonah Janoobiyah Sub-District, Shoonah Janoobiyah District, Balqa, Jordan",
+  "notes": "",
+  "evidence_ids": [
+   "20240807_144851"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "466bb849-842a-4823-b11d-dad865d6d546",
+  "question": "What is my Ryanair booking reference code for my Budapest to London flight?",
+  "answer": "ALWPJV.",
+  "notes": "",
+  "evidence_ids": [
+   "email202505020004"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "18ffd5d6-93f4-49e8-87db-fd64ed8d2282",
+  "question": "I had a bowl of ramen with shrimps after shopping at Harrods in London at night. Where was that ramen restaurant?",
+  "answer": "12, Sumner Place, The Boltons, Brompton, Royal Borough of Kensington and Chelsea, London.",
+  "notes": "",
+  "evidence_ids": [
+   "20221213_181456"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "d8aa224e-9c50-44b2-93f7-cf983cb844dc",
+  "question": "When did I saw the gold mask of Tutankhamun?",
+  "answer": "July 30th, 2024.",
+  "notes": "",
+  "evidence_ids": [
+   "20240730_154913"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "1d853198-9354-44a8-bcd7-fbe954939272",
+  "question": "Help me find a video playing a purple Taylor Swift Vinyl record.",
+  "answer": "20230717_183804",
+  "notes": "",
+  "evidence_ids": [
+   "20230717_183804"
+  ],
+  "qtype": "list_recall"
+ },
+ {
+  "id": "8f1df1d0-aae9-447d-a18d-b12ad401d7d5",
+  "question": "Where did I have lunch on my third day in Porto?",
+  "answer": "506, Rua do Bonjardim, Porto City Centre, Centro Histórico, Cedofeita, Santo Ildefonso, Sé, Miragaia, São Nicolau e Vitória, Porto, 4000-408, Portugal.",
+  "notes": "",
+  "evidence_ids": [
+   "20250224_142901",
+   "20250224_142920"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "612789c5-5e8a-436a-8d88-b6f23f80be64",
+  "question": "When is the payment deadline for my end-of-year college bill?",
+  "answer": "July 28, 2022.",
+  "notes": "",
+  "evidence_ids": [
+   "email202206280005"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "896fa63e-e969-4146-b97e-911518769270",
+  "question": "When did I see the big wheel in Parker’s Piece being disassembled?",
+  "answer": "September 6, 2024",
+  "notes": "",
+  "evidence_ids": [
+   "20240906_194846",
+   "20240906_194849"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "d49857b1-5d71-4a3e-8180-47ac416b888a",
+  "question": "What is my Avis account number?",
+  "answer": "Q886688Q.",
+  "notes": "",
+  "evidence_ids": [
+   "email202404180010"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "a23f04f0-7a5d-4661-a7c3-8eab33c8fa12",
+  "question": "I saw a skywriting smiley face. When was that?",
+  "answer": "25 November 2022.",
+  "notes": "",
+  "evidence_ids": [
+   "20221125_123623"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "01d3088f-39d2-4da7-9ce3-292f41e591d1",
+  "question": "Can you help me recall the photo of the car with very distinctive test paint?",
+  "answer": "20230404_134619",
+  "notes": "",
+  "evidence_ids": [
+   "20230404_134619"
+  ],
+  "qtype": "list_recall"
+ },
+ {
+  "id": "7da82219-800f-4648-b562-1e8bdc393fe2",
+  "question": "What refresh rate is my electriQ 27\" 4K monitor?",
+  "answer": "144Hz",
+  "notes": "",
+  "evidence_ids": [
+   "email202204030005"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "fab60a63-d68a-4d55-9fec-c94894c98caf",
+  "question": "I saw a tree in teardrop shape. Help me recall the images.",
+  "answer": "20220521_162940 20220521_162617",
+  "notes": "",
+  "evidence_ids": [
+   "20220521_162617",
+   "20220521_162940"
+  ],
+  "qtype": "list_recall"
+ },
+ {
+  "id": "87912fee-d6d4-4487-a6cd-636daafe8d99",
+  "question": "Today is April 21, 2022. When is Timothy Lillicrap from DeepMind giving a talk?",
+  "answer": "April 28th at 5 pm.",
+  "notes": "",
+  "evidence_ids": [
+   "email202204130004"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "fb4820bd-1a6d-4cce-9211-51c6e2f5190a",
+  "question": "I had lamb hot pot with a group of friends the other day, when was that?",
+  "answer": "March 16, 2024.",
+  "notes": "",
+  "evidence_ids": [
+   "20240316_123436",
+   "20240316_123547",
+   "20240316_123946"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "e1d7f193-68d7-4bdb-996b-094b9b01dcea",
+  "question": "I really liked that \"Carolina Fried Chicken\" burger I had in Homewrecker, but I think it was a limited special. Is this burger still available today? Today is May 10, 2024.",
+  "answer": "No (Available 02 Apr - 06 May only).",
+  "notes": "",
+  "evidence_ids": [
+   "20240406_182817"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "a59828f3-f3ce-4f64-be0b-ed1f12a8f55f",
+  "question": "I remember a dish with a golden-brown fried cube and a side salad, served on a white plate. What was that?",
+  "answer": "It was a dish from the Feast Night Formal at Downing College, Cambridge, on 6 February 2023.",
+  "notes": "",
+  "evidence_ids": [
+   "20230206_194526"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "97cfc0da-c5ce-46a3-8963-b044f78fc5cb",
+  "question": "How much did I pay for the Kingston 64 GB RAM?",
+  "answer": "£139.99.",
+  "notes": "",
+  "evidence_ids": [
+   "email202303120002"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "4f1da716-e9a4-4486-8eed-70f77fc26257",
+  "question": "What was the restaurant I went to right after I got off train in Edinburgh? ",
+  "answer": "Brewhemia.",
+  "notes": "",
+  "evidence_ids": [
+   "20220619_143630"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "3bdc0d79-261f-4ea5-bdca-c1b4ca7bb88e",
+  "question": "Today is April 2, 2024. When and where will the RLHF tutorial be held?",
+  "answer": "17:00–18:00, CBL seminar room.",
+  "notes": "",
+  "evidence_ids": [
+   "email202403280005"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "17d618a2-35fc-4b0d-a10d-138ad3f40c28",
+  "question": "When did I go to a talk about Deepmind Flamingo in 2022? ",
+  "answer": "3 November 2022.",
+  "notes": "",
+  "evidence_ids": [
+   "20221103_111527"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "a5be6410-a028-4134-963e-9c58adedba12",
+  "question": "I remember walking along the promenade and seeing a distinctive stone fountain. When did I take that photo and where is it?",
+  "answer": "On 19 June 2022 in Portobello, Edinburgh.",
+  "notes": "",
+  "evidence_ids": [
+   "20220619_174230"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "e9d158f8-d54a-4d8f-8caa-5db74533eb9d",
+  "question": "How much does my telephoto lens cost?",
+  "answer": "ABSTENTION",
+  "notes": "",
+  "evidence_ids": [
+   "20221122_163337"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "6faeffe4-3aef-46b2-837d-b7da74612cce",
+  "question": "Today is July 12th, 2025. When is the special dinner for the Boat Race winners?",
+  "answer": "Unfortunately, the special dinner is already passed on Thursday, July 10th.",
+  "notes": "",
+  "evidence_ids": [
+   "email202507040002"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "7eaf43fd-935a-4107-ad4c-4d0390dde2f7",
+  "question": "Today is April 25, I remember using a thermal camera to check some temperatures recently. What was the maximum temperature reading?",
+  "answer": "54.2°C",
+  "notes": "",
+  "evidence_ids": [
+   "20240417_124641"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "d8bd88dc-097d-445a-aa86-a3713ca18bd1",
+  "question": "Find me the working when we were discussing the motivation of my first paper on hateful meme. ",
+  "answer": "20230804_165013 ",
+  "notes": "",
+  "evidence_ids": [
+   "20230804_165013"
+  ],
+  "qtype": "list_recall"
+ },
+ {
+  "id": "229ebf9e-2522-416a-83d8-17a88dbec43a",
+  "question": "I remember seeing a white owl figurine in Scotland. Where was that?",
+  "answer": "Cotswold Outdoor, 102, High Street, Plantation, Fort William, Highland, Scotland.",
+  "notes": "",
+  "evidence_ids": [
+   "20220625_105058"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "7991e29f-f957-475b-a393-4af2f2234501",
+  "question": "When and where did I have that delicious braised pork rice and spring rolls in Oxford?",
+  "answer": "On 21 May 2022 at St Clements Street, Oxford.",
+  "notes": "",
+  "evidence_ids": [
+   "20220521_172816",
+   "20220521_172820"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "8915d16e-6c8c-45a7-bced-2590e18e117a",
+  "question": "I took a photo of a skyscraper with a distinctive horizontal gap or hole in its structure, it reminded me of a washboard. Where is this building located?",
+  "answer": "One Financial Center, 1, Essex Street, Leather District, Downtown Boston, Boston, Suffolk County, Massachusetts 02205, United States.",
+  "notes": "",
+  "evidence_ids": [
+   "20231216_134512",
+   "20231216_134514"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "97b3e836-aea4-4fcf-8b3e-994f0722bb10",
+  "question": "Today is January 25, 2022. What is the COMET module selection deadline for third and fourth-year undergraduates?",
+  "answer": "23:59 on Wednesday, 26 January 2022",
+  "notes": "",
+  "evidence_ids": [
+   "email202201250004"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "b767821e-3d20-4880-8de0-81c6bedf1577",
+  "question": "Where did I have dinner on my second night in Porto?",
+  "answer": "Wine Quay Bar, 111;112, Cais da Estiva, Ribeira, Centro Histórico, Cedofeita, Santo Ildefonso, Sé, Miragaia, São Nicolau e Vitória, Porto, 4050-080, Portugal.",
+  "notes": "",
+  "evidence_ids": [
+   "20250223_190017"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "879acf42-4c5e-4606-949f-ecc3d1498b63",
+  "question": "Today is July 8, 2024. What was the total cost of my most recent order from Waitrose?",
+  "answer": "£16.92.",
+  "notes": "",
+  "evidence_ids": [
+   "email202407070005"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "41e4a473-65d8-4c5b-a73a-27e578157fac",
+  "question": "When did I try to install a white lens sticker? ",
+  "answer": "15 Dec, 2022. ",
+  "notes": "",
+  "evidence_ids": [
+   "20221215_220713"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "e637f69e-9013-4840-8945-5b22242e05c3",
+  "question": "Today is March 25, 2025. Who delivered the recent lecture on diffusion model?",
+  "answer": "Professor Arnaud Doucet",
+  "notes": "",
+  "evidence_ids": [
+   "email202503200006"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "2ad6b62b-74ac-4e05-abe2-daa2216e40ce",
+  "question": "Today is February 17, 2022. When is the outdoor movie night for JCR members?",
+  "answer": "February 26th",
+  "notes": "",
+  "evidence_ids": [
+   "email202202170001"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "9761c97d-a435-4b0c-9dc8-f7e45191c058",
+  "question": "I remember having a pizza topped with some fresh greens at the Cambridge Science Park. When was that?",
+  "answer": "21 July 2022.",
+  "notes": "",
+  "evidence_ids": [
+   "20220721_125851"
+  ],
+  "qtype": "number"
+ },
+ {
+  "id": "cfd96fd3-e2e2-4496-874b-88f0d0c60297",
+  "question": "I walked past a Gothic cathedral in Edinburgh with a beautiful glass window. What was that place called?",
+  "answer": "St Giles' Cathedral.",
+  "notes": "",
+  "evidence_ids": [
+   "20220620_172201",
+   "20220620_172205",
+   "20220620_172506",
+   "20220620_172651"
+  ],
+  "qtype": "open_end"
+ },
+ {
+  "id": "7262e72b-332d-47e6-8ce4-d9ac827a5518",
+  "question": "What is the model of my binoculars?",
+  "answer": "Vortex Optics Crossfire HD 8x42",
+  "notes": "",
+  "evidence_ids": [
+   "email202309110003"
+  ],
+  "qtype": "open_end"
+ }
+]
