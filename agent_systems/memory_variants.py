@@ -50,6 +50,9 @@ def normalize_memory_mode(mode: str) -> str:
         "organized_remmi8": "org_remmi8",
         "orgr9": "org_remmi9",
         "organized_remmi9": "org_remmi9",
+        "remmi": "org_remmi9",
+        "remmi_weak": "org_remmi8",
+        "remmi_scaffold": "org_remmi8",
     }
     normalized = aliases.get(normalized, normalized)
     if normalized not in VALID_MEMORY_MODES:
