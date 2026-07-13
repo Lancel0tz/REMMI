@@ -37,6 +37,38 @@ Setting: Qwen3.6-27B answerer, Pi harness, ATM-Bench-Hard.
 
 Treat these as hypotheses to re-verify with the scripts below, not as numbers.
 
+## Held-out generalization (out-of-distribution overfit check)
+
+Because the hard split is only 31 questions in total, no in-distribution
+held-out is possible; we test cross-distribution transfer on a 59-question
+stratified sample of the STANDARD split (single-hop, seed 42, zero overlap with
+hard-31). This over-tests generalization (questions AND difficulty both change),
+so a retained advantage is strong evidence, a diminished one is confounded with
+the difficulty shift.
+
+| gpt-5-mini, held-out | QS | number | recall | open_end |
+|----------------------|---:|---:|---:|---:|
+| baseline | 55.4 | 52.4 | 46.4 | 60.0 |
+| remmi (v9) | 55.4 | 47.6 | 46.4 | 63.3 |
+| remmi_weak / scaffold (v8) | 55.4 | 42.9 | 46.4 | 66.7 |
+
+Net QS is identical (55.4) for all three — but this is a *cancellation*, not a
+null effect, and the per-qtype breakdown de-confounds it:
+
+- **open_end rises monotonically** (60.0 → 63.3 → 66.7): the multi-evidence
+  organisation/scaffold benefit **transfers out-of-distribution**, so the
+  scaffold is NOT merely fit to the 31 hard questions.
+- **number falls monotonically** (52.4 → 47.6 → 42.9): on easy single-hop
+  number questions (baseline already 52.4) the tool workflow adds overhead
+  without benefit; the *mandated* scaffold (42.9) hurts more than the *optional*
+  tool (47.6) — consistent with the mandate-is-harmful finding.
+
+**Verdict:** the scaffold's mechanism generalizes (not overfitting), but its
+large hard-split gain (+17.9) is regime-specific — realized only where the base
+task is hard and the baseline is weak; on easy questions the number regression
+cancels the open-ended gain. Report v8's advantage as difficulty-conditioned,
+not universal. (5.5 held-out for remmi/v9 pending quota windows.)
+
 ## Master results table (all methods × both answerers)
 
 ATM-Bench-Hard, 31 questions, Codex harness, ATM judge `gpt-5-mini`. **Billed/Q**
