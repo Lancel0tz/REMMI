@@ -52,7 +52,7 @@ Codex/GPT-5-mini conclusions (organisation *helps* the mid-strength Qwen answere
 | `org_heuristic` (rich graph) | 31.0 (33.1/29.9/29.9) | 8.75M | 436 | 0 (no LLM) |
 | `org_static` (2-pass LLM graph) | 41.7 (38.4/41.7/44.9) | 8.58M | 426 | 158k once |
 | **`org_inject`** (offline pre-organise + inject) | **43.7** (43.7/43.7/43.7) | **4.86M** | **276** | 30k (per-Q offline) |
-| `org_dynamic` (self-organise) | *pending (queued)* | — | — | — |
+| `org_dynamic` (self-organise) | 23.3 (23.3/23.3/23.3) | 8.05M | 299 | in-session |
 
 - **`org_inject` is the winner on Qwen/Pi**: highest QS (43.7, +8 over baseline) AND
   lowest tokens (4.86M, −40%) AND fewest turns — the focused per-question shortlist
@@ -67,10 +67,22 @@ Codex/GPT-5-mini conclusions (organisation *helps* the mid-strength Qwen answere
   quality* beats structural richness; this replicates the Codex "index quality,
   not index existence" finding.** (The rich-heuristic builder was prototyped on the
   server; not ported here — kept as a documented negative result.)
-- The `org_dynamic` (self-organise) leg is queued on GPU; it is the direct
-  self-organise-vs-inject comparison at fixed Qwen/Pi (both are per-question,
-  question-conditioned — the only difference is *who pays the organise cost and
-  when*). Table will be updated when it lands.
+- **`org_dynamic` (self-organise) is the big loser (23.3, −12.4 below baseline)** —
+  and this is the headline of the inject-vs-self-organise comparison. Both modes are
+  per-question and question-conditioned; the *only* difference is who organises and
+  when. Handing Qwen3.6-27B a pre-organised shortlist (inject) nearly **doubles** QS
+  (43.7 vs 23.3) at **60% of the tokens** (4.86M vs 8.05M); making it self-organise a
+  `timeline.md` in-session actively **hurts** — it drops below even free exploration
+  (baseline 35.7), spends baseline-level tokens (8.05M), yet answers worse. The
+  mid-strength answerer cannot exploit a timeline it wrote itself, and the mandated
+  organise-then-answer workflow crowds out the free-exploration it *is* good at.
+- **This confirms and extends the cross-model finding.** On gpt-5-mini (weak)
+  self-organisation helped least (+1.9); on Qwen3.6-27B (mid) it is outright
+  negative (−12.4), while scaffolding it with pre-organised evidence wins big
+  (+8.0). Self-organisation only pays on a *strong* answerer (gpt-5.5: +13.5).
+  **Practical rule: weak/mid answerers should be *fed* organised evidence
+  (inject/scaffold), not asked to organise; self-organisation is a strong-model
+  luxury.** (Original Qwen/Pi setting; new data point the recalled runs lacked.)
 
 ## Held-out generalization (out-of-distribution overfit check)
 
