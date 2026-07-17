@@ -3,6 +3,18 @@
 Three strategies for organizing long-term personal memory before/while
 answering, evaluated on the ATM-Bench agent harness (`agent_systems/`).
 
+> **Terminology (2026-07-14, repo-consistent):** **`org_dynamic`** now refers to
+> REMMI's canonical **inject pipeline** — retrieve with the frozen
+> `config/best_routing_config*.json` (routing + reranker), inject the top-k
+> evidence into the answerer prompt, single LLM call (the pipeline behind the
+> repo's headline numbers). The agentic self-organisation variant that builds a
+> per-question `timeline.md` inside an agent loop — previously called
+> org_dynamic in this document — is renamed **`org_timeline`** and is
+> **deprecated** as a method direction; its results below are kept for the
+> capability-interaction analysis. org_dynamic (inject) results with
+> gpt-5-mini / gpt-5.5 answerers are being added.
+
+
 > **Provenance.** This is a local **rebuild** of exploration originally run on a
 > cluster whose disk is currently unrecoverable. The code here was re-implemented
 > from the author's notes/recollection — it is *not* the original scripts, and
@@ -14,7 +26,7 @@ answering, evaluated on the ATM-Bench agent harness (`agent_systems/`).
 
 | Mode | What happens | Sandbox memory files |
 |------|--------------|----------------------|
-| `org_dynamic` | **Dynamic (per-question) organisation.** The answering agent explores only the memory relevant to the current question, organises it into a scratch `timeline.md`, then answers from that view. Prompt-only variant. | SGM (unchanged) |
+| `org_timeline` | **Dynamic (per-question) organisation.** The answering agent explores only the memory relevant to the current question, organises it into a scratch `timeline.md`, then answers from that view. Prompt-only variant. | SGM (unchanged) |
 | `org_static` | **Static (full upfront) agent organisation.** An LLM organiser reworks the *whole* corpus into titled/summarised events offline (`remmi/organize/agent_static.py`, map-reduce over an OpenAI-compatible endpoint); the answering agent reads that index. | SGM + LLM-built `organized_memory.json` |
 | `org_heuristic` | **Pure heuristic organisation.** Deterministic day-gap + city-change clustering into events/trips (`remmi/organize/heuristic.py`); no LLM. On the real corpus: 4,292 items → ~264 events (~131 trips), index ≈ 0.8 MB vs 29 MB full SGM. | SGM + heuristic `organized_memory.json` |
 
@@ -88,7 +100,7 @@ Judge cost (~$0.01/leg) excluded. Per-model champion marked 🏆.
 | **org_heuristic** | **15.3** | 17 / 31 / 0 | 370k | 83k | $0.034 | $0.069 | $1.06 | 19 | day-gap index, no LLM |
 | **org_static** | **24.7** | 17 / 39 / 15 | 451k | 111k | $0.043 | $0.054 | $1.34 | 19 | pure-LLM index, offline (~328k once) |
 | **org_hybrid** | **27.8** | 17 / 38 / 23 | 515k | 103k | $0.046 | $0.051 | $1.42 | 16 | index-guided dynamic |
-| **org_dynamic** | **22.3** | 17 / 41 / 8 | 551k | 120k | $0.051 | $0.072 | $1.59 | 29 | self-organise, no tool |
+| **org_timeline** | **22.3** | 17 / 41 / 8 | 551k | 120k | $0.051 | $0.072 | $1.59 | 29 | self-organise, no tool |
 | **org_remmi (v1)** | **33.2** | 17 / 44 / 31 | 542k | 128k | $0.049 | $0.046 | $1.53 | 6 | retrieval tool, mandated |
 | **remmi_weak (v8)** 🏆 | **38.3** | 33 / 41 / 38 | 425k | 95k | $0.039 | $0.032 | $1.22 | 13 | tool mandated + typed + verified |
 | **remmi (v9)** | **25.2** | 17 / 40 / 15 | 425k | 100k | $0.041 | $0.051 | $1.29 | 19 | tool OPTIONAL + self-organise |
@@ -112,7 +124,7 @@ Judge cost (~$0.01/leg) excluded. Per-model champion marked 🏆.
 | **org_heuristic** | **35.4** | 17 / 75 / 8 | 254k | 84k | $0.603 | $0.528 | $18.71 | 0 | day-gap index, no LLM |
 | **org_static** | **32.2** | 17 / 75 / 0 | 266k | 71k | $0.553 | $0.533 | $17.15 | 0 | pure-LLM index, offline (~328k once) |
 | **org_hybrid** | **32.9** | 17 / 77 / 0 | 419k | 97k | $0.787 | $0.743 | $24.41 | 0 | index-guided dynamic |
-| **org_dynamic** | **49.8** | 33 / 62 / 46 | 434k | 93k | $0.770 | $0.479 | $23.87 | 0 | self-organise, no tool |
+| **org_timeline** | **49.8** | 33 / 62 / 46 | 434k | 93k | $0.770 | $0.479 | $23.87 | 0 | self-organise, no tool |
 | **org_remmi (v1)** | **33.2** | 33 / 69 / 0 | 281k | 67k | $0.559 | $0.522 | $17.32 | 0 | retrieval tool, mandated |
 | **remmi_weak (v8)** | **32.8** | 33 / 68 / 0 | 379k | 85k | $0.670 | $0.633 | $20.77 | 0 | tool mandated + typed + verified |
 | **remmi (v9)** 🏆 | **56.1** | 33 / 78 / 46 | 377k | 89k | $0.714 | $0.395 | $22.15 | 0 | tool OPTIONAL + self-organise |
@@ -129,7 +141,7 @@ is real new content (new input + output) — the comparable measure.
 | sgm (baseline) | 20.4 | 9.34M | 301k | 65k | 29% | — |
 | org_heuristic | 15.3 | 11.47M | 370k | 83k | 19% | 0 (no LLM) |
 | org_static (pure) | 24.7 | 13.99M | 451k | 111k | 19% | 327.6k once (≈10.6k/Q) |
-| org_dynamic | 22.3 | 17.08M | 551k | 120k | 29% | in-session, ~99% of tokens |
+| org_timeline | 22.3 | 17.08M | 551k | 120k | 29% | in-session, ~99% of tokens |
 | org_hybrid | 27.8 | 15.97M | 515k | 103k | 16% | reuses static index |
 | **org_remmi** | **33.2** | 16.81M | 542k | 128k | **6%** | none (search tool, no LLM index) |
 
@@ -187,7 +199,7 @@ best recall (44.0) *and* best open-ended (30.8). It does not reduce tokens
 evidence. Retrieval-quality, not token-thrift, is what pays.
 
 Per question type (QS): `number` identical everywhere (16.7 — nobody solves
-them); `list_recall` — org_dynamic best (40.9), hybrid/static close (38.5/38.8)
+them); `list_recall` — org_timeline best (40.9), hybrid/static close (38.5/38.8)
 vs baseline 35.9; `open_end` — **org_hybrid 23.1 = 3× baseline** (7.7),
 static 15.4, heuristic collapses to 0.0.
 
@@ -227,7 +239,7 @@ Takeaways under this setting (contrast with the recalled Qwen3.6-27B/Pi runs):
 ### Phase split: does answering get cheaper AFTER organisation?
 
 The end-to-end numbers above bill the dynamic mode for its in-session
-organisation. Splitting each `org_dynamic` session at the last `timeline.md`
+organisation. Splitting each `org_timeline` session at the last `timeline.md`
 write (tool-output bytes ≈ context volume as proxy):
 
 | | organise phase | answer phase (post-timeline) |
@@ -270,7 +282,7 @@ Same harness/judge, ChatGPT-plan quota (last 3 orgr questions via API billing).
 | org_static (pure) | 32.2 | 71k | 16.7 / 74.8 / 0.0 | 256k |
 | org_hybrid | 32.9 | 97k | 16.7 / 76.5 / 0.0 | 395k |
 | org_remmi (v1) | 33.2 | 67k | 33.3 / 69.1 / 0.0 | 262k |
-| **org_dynamic** | **49.8** | 93k | 33.3 / 62.1 / **46.2** | 270k |
+| **org_timeline** | **49.8** | 93k | 33.3 / 62.1 / **46.2** | 270k |
 
 ### The cross-model interaction (the headline finding)
 
@@ -283,7 +295,7 @@ QS delta vs the same-model sgm baseline:
 | org_hybrid | +7.4 | **−3.4** |
 | org_remmi v1 | +12.8 | **−3.1** |
 | org_remmi8 (typed+verified) | **+17.9** | **−3.5** |
-| org_dynamic | +1.9 | **+13.5** |
+| org_timeline | +1.9 | **+13.5** |
 
 - **Weak answerer:** every scaffold helps (index +4~7, retrieval tool +13~18);
   self-organisation helps least (+1.9) — mini cannot exploit its own timeline.
@@ -298,7 +310,7 @@ QS delta vs the same-model sgm baseline:
 
 ### Tool-optional (org_remmi9): presence vs mandate — the refined finding
 
-Separating tool PRESENCE from tool MANDATE (org_dynamic's exact prompt + a
+Separating tool PRESENCE from tool MANDATE (org_timeline's exact prompt + a
 neutral "search.py exists, entirely optional" paragraph):
 
 | 5.5 | tool mandated (orgr8) | no tool (orgd) | **tool OPTIONAL (orgr9)** |
@@ -328,19 +340,19 @@ exactly like orgr v1). The 2×2 is symmetric: scaffolding +17.9 / −3.5
 (weak/strong), self-organisation +1.9 / +13.5. **Scaffolding and capability are
 substitutes, not complements — the optimal organisation policy inverts with
 answerer strength.** Per-model champions: mini → org_remmi8 (38.3); 5.5 →
-org_dynamic (49.8).
+org_timeline (49.8).
 
 ## Running locally
 
 ```bash
 # 1. Build the sandbox for the mode you want (one-time per mode)
-AGSYS_MEMORY_MODE=org_dynamic   python3 agent_systems/prepare_sandbox.py
+AGSYS_MEMORY_MODE=org_timeline   python3 agent_systems/prepare_sandbox.py
 AGSYS_MEMORY_MODE=org_heuristic python3 agent_systems/prepare_sandbox.py
 # org_static additionally needs the offline organiser pass first — see
 # run_codex_gpt55_org_static.sh header.
 
 # 2. Run (Codex + GPT-5.5 presets; pass a question id for a single-question smoke)
-bash experiments/memory_organization/run_codex_gpt55_org_dynamic.sh   [<qid>]
+bash experiments/memory_organization/run_codex_gpt55_org_timeline.sh   [<qid>]
 bash experiments/memory_organization/run_codex_gpt55_org_heuristic.sh [<qid>]
 bash experiments/memory_organization/run_codex_gpt55_org_static.sh    [<qid>]
 ```
@@ -349,7 +361,7 @@ To reproduce the original setting instead (Pi + a served Qwen model), point the
 Pi OpenAI-compatible preset at your endpoint and set the mode:
 
 ```bash
-AGSYS_MEMORY_MODE=org_dynamic \
+AGSYS_MEMORY_MODE=org_timeline \
 PI_OPENAI_BASE_URL=<your-endpoint>/v1 PI_OPENAI_MODEL=<served-model-id> \
   bash agent_systems/scripts/pi/run_pi_openai_compatible.sh [<qid>]
 ```
@@ -365,4 +377,4 @@ Results land under the usual `agent_systems` flow (run tags get an `orgh`/
 - `remmi/organize/agent_static.py` — LLM full-corpus organiser (CLI)
 - `agent_systems/memory_variants.py` — `org_*` sandbox build modes
 - `agent_systems/prompts/system_prompt_org.txt` — index-first answering prompt
-- `agent_systems/prompts/system_prompt_org_dynamic.txt` — organize-then-answer prompt
+- `agent_systems/prompts/system_prompt_org_timeline.txt` — organize-then-answer prompt
