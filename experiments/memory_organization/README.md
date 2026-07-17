@@ -69,52 +69,53 @@ task is hard and the baseline is weak; on easy questions the number regression
 cancels the open-ended gain. Report v8's advantage as difficulty-conditioned,
 not universal. (5.5 held-out for remmi/v9 pending quota windows.)
 
-## Master results table (all methods × both answerers)
+## Master results table (all methods × both answerers, USD costs)
 
-ATM-Bench-Hard, 31 questions, Codex harness, ATM judge `gpt-5-mini`. **Billed/Q**
-= mean billed tokens per question (includes cached agent-loop re-sends);
-**Uncached/Q** = real new content (comparable across harnesses). **Org-read /
-Ans-read** = KB of tool output read in the organise vs answer phase (split at the
-last `timeline.md` write; only for timeline-writing sessions, so blank for
-index/no-timeline modes). **Total tok/QS-pt** = sum billed over 31 Q ÷ QS
-(lower = more efficient). Per-model champion marked 🏆.
+ATM-Bench-Hard, 31 questions, Codex harness, ATM judge `gpt-5-mini`.
+**Cost/Q** = mean USD per question, computed from the per-turn token splits
+(uncached input × input rate + cached input × cache-read rate + output ×
+output rate) with rates from the local **Tokdash pricing DB** (falls back to a
+frozen snapshot; regenerate any time with
+`experiments/memory_organization/compare_modes.py`). **$/QS-pt** = total USD ÷
+QS — dollars per quality point, the headline cost-effectiveness metric.
+Judge cost (~$0.01/leg) excluded. Per-model champion marked 🏆.
 
-#### gpt-5-mini
+#### gpt-5-mini  <sub>(rates: in $0.25/M · out $2/M · cache-read $0.025/M — Tokdash pricing DB)</sub>
 
-| Method | QS | num / rec / open | Billed/Q | Uncached/Q | Org-read | Ans-read | Unk% | Total tok/QS-pt | Note |
-|--------|---:|:--:|--------:|----------:|-------:|-------:|---:|-------:|------|
-| **sgm (baseline)** | **20.4** | 17 / 36 / 8 | 301k | 65k | — | — | 29 | 459k | no organisation |
-| **org_heuristic** | **15.3** | 17 / 31 / 0 | 370k | 83k | — | — | 19 | 751k | day-gap index, no LLM |
-| **org_static** | **24.7** | 17 / 39 / 15 | 451k | 111k | — | — | 19 | 566k | pure-LLM index, offline (~328k once) |
-| **org_hybrid** | **27.8** | 17 / 38 / 23 | 515k | 103k | 479KB | 25KB | 16 | 575k | index-guided dynamic |
-| **org_dynamic** | **22.3** | 17 / 41 / 8 | 551k | 120k | 960KB | 8KB | 29 | 767k | self-organise, no tool |
-| **org_remmi (v1)** | **33.2** | 17 / 44 / 31 | 542k | 128k | 68KB | 0KB | 6 | 507k | retrieval tool, mandated |
-| **org_remmi8** 🏆 | **38.3** | 33 / 41 / 38 | 425k | 95k | — | — | 13 | 344k | tool mandated + typed + verified |
-| **org_remmi9** | **25.2** | 17 / 40 / 15 | 425k | 100k | 140KB | 2KB | 19 | 523k | tool OPTIONAL + self-organise |
+| Method | QS | num / rec / open | Billed/Q | Uncached/Q | **Cost/Q** | **$/QS-pt** | Total $ | Unk% | Note |
+|--------|---:|:--:|--------:|----------:|-------:|--------:|-------:|---:|------|
+| **sgm (baseline)** | **20.4** | 17 / 36 / 8 | 301k | 65k | $0.028 | $0.042 | $0.86 | 29 | no organisation |
+| **org_heuristic** | **15.3** | 17 / 31 / 0 | 370k | 83k | $0.034 | $0.069 | $1.06 | 19 | day-gap index, no LLM |
+| **org_static** | **24.7** | 17 / 39 / 15 | 451k | 111k | $0.043 | $0.054 | $1.34 | 19 | pure-LLM index, offline (~328k once) |
+| **org_hybrid** | **27.8** | 17 / 38 / 23 | 515k | 103k | $0.046 | $0.051 | $1.42 | 16 | index-guided dynamic |
+| **org_dynamic** | **22.3** | 17 / 41 / 8 | 551k | 120k | $0.051 | $0.072 | $1.59 | 29 | self-organise, no tool |
+| **org_remmi (v1)** | **33.2** | 17 / 44 / 31 | 542k | 128k | $0.049 | $0.046 | $1.53 | 6 | retrieval tool, mandated |
+| **remmi_weak (v8)** 🏆 | **38.3** | 33 / 41 / 38 | 425k | 95k | $0.039 | $0.032 | $1.22 | 13 | tool mandated + typed + verified |
+| **remmi (v9)** | **25.2** | 17 / 40 / 15 | 425k | 100k | $0.041 | $0.051 | $1.29 | 19 | tool OPTIONAL + self-organise |
 
-<sub>org_remmi token-efficiency ladder (mini only, iterations that were superseded):</sub>
+<sub>org_remmi ladder (mini, superseded iterations):</sub>
 
-| Method | QS | num / rec / open | Billed/Q | Uncached/Q | Note |
-|--------|---:|:--:|--------:|----------:|------|
-| org_remmi2 | 18.7 | 17 / 32 / 8 | 215k | 58k | rich show + cmd budget |
-| org_remmi3 | 12.6 | 17 / 24 / 0 | 161k | 35k | slim show + hard budget |
-| org_remmi4 | 21.7 | 33 / 39 / 0 | 420k | 101k | no budget + thoroughness |
-| org_remmi5 | 25.6 | 0 / 41 / 23 | 358k | 87k | + answer typing A/B |
-| org_remmi6 | 35.5 | 33 / 42 / 31 | 402k | 87k | + 3-way typing |
-| org_remmi7 | 21.5 | 17 / 39 / 8 | 399k | 106k | + event-layer tool (neg) |
+| Method | QS | Billed/Q | Uncached/Q | Cost/Q | Note |
+|--------|---:|--------:|----------:|-------:|------|
+| org_remmi2 | 18.7 | 215k | 58k | $0.024 | rich show + cmd budget |
+| org_remmi3 | 12.6 | 161k | 35k | $0.017 | slim show + hard budget |
+| org_remmi4 | 21.7 | 420k | 101k | $0.040 | no budget + thoroughness |
+| org_remmi5 | 25.6 | 358k | 87k | $0.035 | + answer typing A/B |
+| org_remmi6 | 35.5 | 402k | 87k | $0.036 | + 3-way typing |
+| org_remmi7 | 21.5 | 399k | 106k | $0.041 | + event-layer tool (neg) |
 
-#### gpt-5.5
+#### gpt-5.5  <sub>(rates: in $5/M · out $30/M · cache-read $0.5/M — Tokdash pricing DB)</sub>
 
-| Method | QS | num / rec / open | Billed/Q | Uncached/Q | Org-read | Ans-read | Unk% | Total tok/QS-pt | Note |
-|--------|---:|:--:|--------:|----------:|-------:|-------:|---:|-------:|------|
-| **sgm (baseline)** | **36.3** | 33 / 69 / 8 | 296k | 87k | — | — | 0 | 252k | no organisation |
-| **org_heuristic** | **35.4** | 17 / 75 / 8 | 254k | 84k | — | — | 0 | 223k | day-gap index, no LLM |
-| **org_static** | **32.2** | 17 / 75 / 0 | 266k | 71k | — | — | 0 | 256k | pure-LLM index, offline (~328k once) |
-| **org_hybrid** | **32.9** | 17 / 77 / 0 | 419k | 97k | 245KB | 4KB | 0 | 395k | index-guided dynamic |
-| **org_dynamic** | **49.8** | 33 / 62 / 46 | 434k | 93k | 839KB | 2KB | 0 | 270k | self-organise, no tool |
-| **org_remmi (v1)** | **33.2** | 33 / 69 / 0 | 281k | 67k | 75KB | 0KB | 0 | 262k | retrieval tool, mandated |
-| **org_remmi8** | **32.8** | 33 / 68 / 0 | 379k | 85k | 73KB | 65KB | 0 | 358k | tool mandated + typed + verified |
-| **org_remmi9** 🏆 | **56.1** | 33 / 78 / 46 | 377k | 89k | 348KB | 5KB | 0 | 208k | tool OPTIONAL + self-organise |
+| Method | QS | num / rec / open | Billed/Q | Uncached/Q | **Cost/Q** | **$/QS-pt** | Total $ | Unk% | Note |
+|--------|---:|:--:|--------:|----------:|-------:|--------:|-------:|---:|------|
+| **sgm (baseline)** | **36.3** | 33 / 69 / 8 | 296k | 87k | $0.618 | $0.527 | $19.16 | 0 | no organisation |
+| **org_heuristic** | **35.4** | 17 / 75 / 8 | 254k | 84k | $0.603 | $0.528 | $18.71 | 0 | day-gap index, no LLM |
+| **org_static** | **32.2** | 17 / 75 / 0 | 266k | 71k | $0.553 | $0.533 | $17.15 | 0 | pure-LLM index, offline (~328k once) |
+| **org_hybrid** | **32.9** | 17 / 77 / 0 | 419k | 97k | $0.787 | $0.743 | $24.41 | 0 | index-guided dynamic |
+| **org_dynamic** | **49.8** | 33 / 62 / 46 | 434k | 93k | $0.770 | $0.479 | $23.87 | 0 | self-organise, no tool |
+| **org_remmi (v1)** | **33.2** | 33 / 69 / 0 | 281k | 67k | $0.559 | $0.522 | $17.32 | 0 | retrieval tool, mandated |
+| **remmi_weak (v8)** | **32.8** | 33 / 68 / 0 | 379k | 85k | $0.670 | $0.633 | $20.77 | 0 | tool mandated + typed + verified |
+| **remmi (v9)** 🏆 | **56.1** | 33 / 78 / 46 | 377k | 89k | $0.714 | $0.395 | $22.15 | 0 | tool OPTIONAL + self-organise |
 
 ## Local rebuild results (2026-07-03, final)
 
