@@ -5,15 +5,15 @@
 # organises it into a scratch timeline before answering. Memory files = SGM.
 #
 # One-time sandbox build:
-#   AGSYS_MEMORY_MODE=org_dynamic python3 agent_systems/prepare_sandbox.py
+#   AGSYS_MEMORY_MODE=org_remmi0 python3 agent_systems/prepare_sandbox.py
 #
 # Usage (from repo root):
-#   bash experiments/memory_organization/run_codex_gpt55_org_dynamic.sh [<question_id>]
+#   bash experiments/memory_organization/run_codex_gpt55_org_remmi0.sh [<question_id>]
 #
 
 set -o pipefail
 
-export AGSYS_MEMORY_MODE="org_dynamic"
+export AGSYS_MEMORY_MODE="org_remmi0"
 export AGSYS_CODEX_MODEL="${AGSYS_CODEX_MODEL:-gpt-5.5}"
 export AGSYS_CODEX_MODEL_TAG="${AGSYS_CODEX_MODEL_TAG:-gpt-5.5-medium}"
 export AGSYS_CODEX_REASONING_EFFORT="${AGSYS_CODEX_REASONING_EFFORT:-medium}"

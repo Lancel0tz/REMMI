@@ -1,6 +1,6 @@
 # Memory-organization experiments (the *Episodic* pillar of REMMI)
 
-Three strategies for organizing long-term personal memory before/while
+Strategies for organizing long-term personal memory before/while
 answering, evaluated on the ATM-Bench agent harness (`agent_systems/`).
 
 > **Provenance.** This is a local **rebuild** of exploration originally run on a
@@ -10,14 +10,27 @@ answering, evaluated on the ATM-Bench agent harness (`agent_systems/`).
 > Original runs used **Qwen3.6-27B** on the **Pi** harness; the local rebuild
 > defaults to **GPT-5.5 on Codex** (no local GPU) — both harnesses are wired.
 
-## The three strategies
+## The strategies
+
+Modes are named by **where the organising happens**. Everything organised *offline*,
+outside the agent loop, is `org_*`; everything organised *in-session*, inside the
+answering agent's loop, is `org_remmi*`. This matters because in-session organising
+re-sends a growing context on every turn, which is where the token cost lives.
+
+### Offline — organised outside the agent loop
 
 | Mode | What happens | Sandbox memory files |
 |------|--------------|----------------------|
-| `org_dynamic` | **Dynamic (per-question) organisation, SELF-organise.** The answering agent explores only the memory relevant to the current question, organises it into a scratch `timeline.md`, then answers from that view. Prompt-only variant (agent pays the organise cost in-session). | SGM (unchanged) |
-| `org_inject` | **Dynamic (per-question) organisation, OFFLINE pre-organise + INJECT.** An LLM organises each question's top-N retrieved items into events *offline* (`remmi/organize/dynamic_inject.py`); the harness injects that question's events as `memory/query_events.json` at run time (`AGSYS_DYNAMIC_EVENTS_DIR`). The answerer reads a focused shortlist instead of paying to organise in-session — the offline counterpart to `org_dynamic`. | SGM + per-question `query_events.json` |
+| `org_dynamic` | **Per-question organisation.** For each question an LLM organises its top-N retrieved items into events in ONE stateless call, offline (`remmi/organize/dynamic.py`); the harness injects that question's events as `memory/query_events.json` at run time (`AGSYS_DYNAMIC_EVENTS_DIR`). The answerer reads a focused shortlist instead of paying to organise in-session. *Dynamic* = scoped to the question, not to the corpus. | SGM + per-question `query_events.json` |
 | `org_static` | **Static (full upfront) agent organisation.** An LLM organiser reworks the *whole* corpus into titled/summarised events offline (`remmi/organize/agent_static.py`, map-reduce over an OpenAI-compatible endpoint); the answering agent reads that index. | SGM + LLM-built `organized_memory.json` |
 | `org_heuristic` | **Pure heuristic organisation.** Deterministic day-gap + city-change clustering into events/trips (`remmi/organize/heuristic.py`); no LLM. On the real corpus: 4,292 items → ~264 events (~131 trips), index ≈ 0.8 MB vs 29 MB full SGM. | SGM + heuristic `organized_memory.json` |
+
+### In-session — organised inside the agent loop (the `org_remmi` line)
+
+| Mode | What happens | Sandbox memory files |
+|------|--------------|----------------------|
+| `org_remmi0` | **Self-organise, no tool.** The answering agent discovers evidence by grepping the raw metadata itself, organises what it finds into a scratch `timeline.md`, then answers from that view. Prompt-only; the agent pays the organise cost in-session. The ancestor the rest of the line iterates on. | SGM (unchanged) |
+| `org_remmi`..`org_remmi9` | **Self-organise, with the REMMI search tool.** Same organise-then-answer loop, but discovery goes through a ranked search tool over a compact corpus projection (`remmi/organize/search_pack.py`) instead of grep. The variants differ in whether the tool is mandated or optional and how much discipline the prompt imposes; `org_remmi9` (tool-optional) is the strongest on Qwen. | SGM + `search.py` + `search_corpus.json` |
 
 All organized modes keep the full per-item SGM files in the sandbox — recall
 questions must still answer with exact memory item ids.
@@ -26,9 +39,15 @@ questions must still answer with exact memory item ids.
 
 Setting: Qwen3.6-27B answerer, Pi harness, ATM-Bench-Hard.
 
-- **Dynamic** — the winner: **saved tokens AND improved QS.** Organising only
-  question-relevant memory keeps context small while giving the answerer a
-  coherent event view for multi-evidence aggregation.
+> **Naming caveat.** These notes predate the rename. "Dynamic" here means
+> *per-question, self-organised by the agent* — what is now **`org_remmi0`**, NOT
+> today's `org_dynamic` (offline per-question). Read literally under the current
+> names the recalled claim looks confirmed; it is not. The reproduced runs below
+> **contradict** it: self-organising scored 23.3, the worst of the five.
+
+- **Dynamic** (= today's `org_remmi0`) — the winner: **saved tokens AND improved
+  QS.** Organising only question-relevant memory keeps context small while giving
+  the answerer a coherent event view for multi-evidence aggregation.
 - **Static** — full upfront agent organisation **neither saved tokens nor
   improved QS** meaningfully: the agent still had to verify against per-item
   records, and the upfront pass burns its own tokens.
@@ -51,10 +70,10 @@ Codex/GPT-5-mini conclusions (organisation *helps* the mid-strength Qwen answere
 | `sgm` (baseline) | 35.7 | 8.06M | 320 | — |
 | `org_heuristic` (rich graph) | 31.0 (33.1/29.9/29.9) | 8.75M | 436 | 0 (no LLM) |
 | `org_static` (2-pass LLM graph) | 41.7 (38.4/41.7/44.9) | 8.58M | 426 | 158k once |
-| **`org_inject`** (offline pre-organise + inject) | **43.7** (43.7/43.7/43.7) | **4.86M** | **276** | 30k (per-Q offline) |
-| `org_dynamic` (self-organise) | 23.3 (23.3/23.3/23.3) | 8.05M | 299 | in-session |
+| **`org_dynamic`** (offline pre-organise + inject) | **43.7** (43.7/43.7/43.7) | **4.86M** | **276** | 30k (per-Q offline) |
+| `org_remmi0` (self-organise) | 23.3 (23.3/23.3/23.3) | 8.05M | 299 | in-session |
 
-- **`org_inject` is the winner on Qwen/Pi**: highest QS (43.7, +8 over baseline) AND
+- **`org_dynamic` is the winner on Qwen/Pi**: highest QS (43.7, +8 over baseline) AND
   lowest tokens (4.86M, −40%) AND fewest turns — the focused per-question shortlist
   lets the answerer skip in-session exploration. Zero judge variance.
 - **`org_static` (2-pass LLM graph)** is second (+6.0); the LLM-decided event/theme
@@ -67,10 +86,10 @@ Codex/GPT-5-mini conclusions (organisation *helps* the mid-strength Qwen answere
   quality* beats structural richness; this replicates the Codex "index quality,
   not index existence" finding.** (The rich-heuristic builder was prototyped on the
   server; not ported here — kept as a documented negative result.)
-- **`org_dynamic` (self-organise) is the big loser (23.3, −12.4 below baseline)** —
-  and this is the headline of the inject-vs-self-organise comparison. Both modes are
+- **`org_remmi0` (self-organise) is the big loser (23.3, −12.4 below baseline)** —
+  and this is the headline of the offline-vs-in-session organise comparison. Both modes are
   per-question and question-conditioned; the *only* difference is who organises and
-  when. Handing Qwen3.6-27B a pre-organised shortlist (inject) nearly **doubles** QS
+  when. Handing Qwen3.6-27B a pre-organised shortlist (org_dynamic) nearly **doubles** QS
   (43.7 vs 23.3) at **60% of the tokens** (4.86M vs 8.05M); making it self-organise a
   `timeline.md` in-session actively **hurts** — it drops below even free exploration
   (baseline 35.7), spends baseline-level tokens (8.05M), yet answers worse. The
@@ -81,7 +100,7 @@ Codex/GPT-5-mini conclusions (organisation *helps* the mid-strength Qwen answere
   negative (−12.4), while scaffolding it with pre-organised evidence wins big
   (+8.0). Self-organisation only pays on a *strong* answerer (gpt-5.5: +13.5).
   **Practical rule: weak/mid answerers should be *fed* organised evidence
-  (inject/scaffold), not asked to organise; self-organisation is a strong-model
+  (org_dynamic/scaffold), not asked to organise; self-organisation is a strong-model
   luxury.** (Original Qwen/Pi setting; new data point the recalled runs lacked.)
 
 ## Held-out generalization (out-of-distribution overfit check)
@@ -134,7 +153,7 @@ index/no-timeline modes). **Total tok/QS-pt** = sum billed over 31 Q ÷ QS
 | **org_heuristic** | **15.3** | 17 / 31 / 0 | 370k | 83k | — | — | 19 | 751k | day-gap index, no LLM |
 | **org_static** | **24.7** | 17 / 39 / 15 | 451k | 111k | — | — | 19 | 566k | pure-LLM index, offline (~328k once) |
 | **org_hybrid** | **27.8** | 17 / 38 / 23 | 515k | 103k | 479KB | 25KB | 16 | 575k | index-guided dynamic |
-| **org_dynamic** | **22.3** | 17 / 41 / 8 | 551k | 120k | 960KB | 8KB | 29 | 767k | self-organise, no tool |
+| **org_remmi0** | **22.3** | 17 / 41 / 8 | 551k | 120k | 960KB | 8KB | 29 | 767k | self-organise, no tool |
 | **org_remmi (v1)** | **33.2** | 17 / 44 / 31 | 542k | 128k | 68KB | 0KB | 6 | 507k | retrieval tool, mandated |
 | **org_remmi8** 🏆 | **38.3** | 33 / 41 / 38 | 425k | 95k | — | — | 13 | 344k | tool mandated + typed + verified |
 | **org_remmi9** | **25.2** | 17 / 40 / 15 | 425k | 100k | 140KB | 2KB | 19 | 523k | tool OPTIONAL + self-organise |
@@ -158,7 +177,7 @@ index/no-timeline modes). **Total tok/QS-pt** = sum billed over 31 Q ÷ QS
 | **org_heuristic** | **35.4** | 17 / 75 / 8 | 254k | 84k | — | — | 0 | 223k | day-gap index, no LLM |
 | **org_static** | **32.2** | 17 / 75 / 0 | 266k | 71k | — | — | 0 | 256k | pure-LLM index, offline (~328k once) |
 | **org_hybrid** | **32.9** | 17 / 77 / 0 | 419k | 97k | 245KB | 4KB | 0 | 395k | index-guided dynamic |
-| **org_dynamic** | **49.8** | 33 / 62 / 46 | 434k | 93k | 839KB | 2KB | 0 | 270k | self-organise, no tool |
+| **org_remmi0** | **49.8** | 33 / 62 / 46 | 434k | 93k | 839KB | 2KB | 0 | 270k | self-organise, no tool |
 | **org_remmi (v1)** | **33.2** | 33 / 69 / 0 | 281k | 67k | 75KB | 0KB | 0 | 262k | retrieval tool, mandated |
 | **org_remmi8** | **32.8** | 33 / 68 / 0 | 379k | 85k | 73KB | 65KB | 0 | 358k | tool mandated + typed + verified |
 | **org_remmi9** 🏆 | **56.1** | 33 / 78 / 46 | 377k | 89k | 348KB | 5KB | 0 | 208k | tool OPTIONAL + self-organise |
@@ -175,7 +194,7 @@ is real new content (new input + output) — the comparable measure.
 | sgm (baseline) | 20.4 | 9.34M | 301k | 65k | 29% | — |
 | org_heuristic | 15.3 | 11.47M | 370k | 83k | 19% | 0 (no LLM) |
 | org_static (pure) | 24.7 | 13.99M | 451k | 111k | 19% | 327.6k once (≈10.6k/Q) |
-| org_dynamic | 22.3 | 17.08M | 551k | 120k | 29% | in-session, ~99% of tokens |
+| org_remmi0 | 22.3 | 17.08M | 551k | 120k | 29% | in-session, ~99% of tokens |
 | org_hybrid | 27.8 | 15.97M | 515k | 103k | 16% | reuses static index |
 | **org_remmi** | **33.2** | 16.81M | 542k | 128k | **6%** | none (search tool, no LLM index) |
 
@@ -233,7 +252,7 @@ best recall (44.0) *and* best open-ended (30.8). It does not reduce tokens
 evidence. Retrieval-quality, not token-thrift, is what pays.
 
 Per question type (QS): `number` identical everywhere (16.7 — nobody solves
-them); `list_recall` — org_dynamic best (40.9), hybrid/static close (38.5/38.8)
+them); `list_recall` — org_remmi0 best (40.9), hybrid/static close (38.5/38.8)
 vs baseline 35.9; `open_end` — **org_hybrid 23.1 = 3× baseline** (7.7),
 static 15.4, heuristic collapses to 0.0.
 
@@ -245,7 +264,7 @@ Takeaways under this setting (contrast with the recalled Qwen3.6-27B/Pi runs):
 
 0. **org_remmi (retrieval-as-a-tool) wins overall**: giving the agent a real
    retriever for discovery beats both index-guided (orgx +5.4) and blind-grep
-   (orgd +10.9) dynamic organisation. The evidence bottleneck is *discovery
+   (orgr0 +10.9) dynamic organisation. The evidence bottleneck is *discovery
    quality*: grep finds keyword matches, the index finds coarse events, the
    retriever finds ranked relevant items.
 1. **org_hybrid (index-guided dynamic organisation) is second**: +7.4 QS over
@@ -273,7 +292,7 @@ Takeaways under this setting (contrast with the recalled Qwen3.6-27B/Pi runs):
 ### Phase split: does answering get cheaper AFTER organisation?
 
 The end-to-end numbers above bill the dynamic mode for its in-session
-organisation. Splitting each `org_dynamic` session at the last `timeline.md`
+organisation. Splitting each `org_remmi0` session at the last `timeline.md`
 write (tool-output bytes ≈ context volume as proxy):
 
 | | organise phase | answer phase (post-timeline) |
@@ -316,7 +335,7 @@ Same harness/judge, ChatGPT-plan quota (last 3 orgr questions via API billing).
 | org_static (pure) | 32.2 | 71k | 16.7 / 74.8 / 0.0 | 256k |
 | org_hybrid | 32.9 | 97k | 16.7 / 76.5 / 0.0 | 395k |
 | org_remmi (v1) | 33.2 | 67k | 33.3 / 69.1 / 0.0 | 262k |
-| **org_dynamic** | **49.8** | 93k | 33.3 / 62.1 / **46.2** | 270k |
+| **org_remmi0** | **49.8** | 93k | 33.3 / 62.1 / **46.2** | 270k |
 
 ### The cross-model interaction (the headline finding)
 
@@ -329,7 +348,7 @@ QS delta vs the same-model sgm baseline:
 | org_hybrid | +7.4 | **−3.4** |
 | org_remmi v1 | +12.8 | **−3.1** |
 | org_remmi8 (typed+verified) | **+17.9** | **−3.5** |
-| org_dynamic | +1.9 | **+13.5** |
+| org_remmi0 | +1.9 | **+13.5** |
 
 - **Weak answerer:** every scaffold helps (index +4~7, retrieval tool +13~18);
   self-organisation helps least (+1.9) — mini cannot exploit its own timeline.
@@ -344,16 +363,16 @@ QS delta vs the same-model sgm baseline:
 
 ### Tool-optional (org_remmi9): presence vs mandate — the refined finding
 
-Separating tool PRESENCE from tool MANDATE (org_dynamic's exact prompt + a
+Separating tool PRESENCE from tool MANDATE (org_remmi0's exact prompt + a
 neutral "search.py exists, entirely optional" paragraph):
 
-| 5.5 | tool mandated (orgr8) | no tool (orgd) | **tool OPTIONAL (orgr9)** |
+| 5.5 | tool mandated (orgr8) | no tool (orgr0) | **tool OPTIONAL (orgr9)** |
 |---|---:|---:|---:|
 | QS | 32.8 | 49.8 | **56.1** |
 | recall | 68.1 | 62.1 | **78.2** |
 | open-ended | 0.0 | 46.2 | **46.2** |
 
-| mini | no tool (orgd) | tool optional (orgr9) | tool + full discipline (orgr8) |
+| mini | no tool (orgr0) | tool optional (orgr9) | tool + full discipline (orgr8) |
 |---|---:|---:|---:|
 | QS | 22.3 | 25.2 | **38.3** |
 
@@ -374,19 +393,19 @@ exactly like orgr v1). The 2×2 is symmetric: scaffolding +17.9 / −3.5
 (weak/strong), self-organisation +1.9 / +13.5. **Scaffolding and capability are
 substitutes, not complements — the optimal organisation policy inverts with
 answerer strength.** Per-model champions: mini → org_remmi8 (38.3); 5.5 →
-org_dynamic (49.8).
+org_remmi0 (49.8).
 
 ## Running locally
 
 ```bash
 # 1. Build the sandbox for the mode you want (one-time per mode)
-AGSYS_MEMORY_MODE=org_dynamic   python3 agent_systems/prepare_sandbox.py
+AGSYS_MEMORY_MODE=org_remmi0   python3 agent_systems/prepare_sandbox.py
 AGSYS_MEMORY_MODE=org_heuristic python3 agent_systems/prepare_sandbox.py
 # org_static additionally needs the offline organiser pass first — see
 # run_codex_gpt55_org_static.sh header.
 
 # 2. Run (Codex + GPT-5.5 presets; pass a question id for a single-question smoke)
-bash experiments/memory_organization/run_codex_gpt55_org_dynamic.sh   [<qid>]
+bash experiments/memory_organization/run_codex_gpt55_org_remmi0.sh   [<qid>]
 bash experiments/memory_organization/run_codex_gpt55_org_heuristic.sh [<qid>]
 bash experiments/memory_organization/run_codex_gpt55_org_static.sh    [<qid>]
 ```
@@ -395,13 +414,13 @@ To reproduce the original setting instead (Pi + a served Qwen model), point the
 Pi OpenAI-compatible preset at your endpoint and set the mode:
 
 ```bash
-AGSYS_MEMORY_MODE=org_dynamic \
+AGSYS_MEMORY_MODE=org_remmi0 \
 PI_OPENAI_BASE_URL=<your-endpoint>/v1 PI_OPENAI_MODEL=<served-model-id> \
   bash agent_systems/scripts/pi/run_pi_openai_compatible.sh [<qid>]
 ```
 
 Results land under the usual `agent_systems` flow (run tags get an `orgh`/
-`orgs`/`orgd` suffix, so runs never collide with sgm baselines); collect with
+`orgs`/`orgr0` suffix, so runs never collide with sgm baselines); collect with
 `agent_systems/collect_results.py` / `collect_usage.py` as normal.
 
 ## Where the pieces live
@@ -411,10 +430,10 @@ Results land under the usual `agent_systems` flow (run tags get an `orgh`/
 - `remmi/organize/agent_static.py` — LLM full-corpus organiser (CLI); strategies:
   `seeded`, `pure`, and `graph_2pass` (per-day segmentation → per-trip themes,
   multi-membership graph — the `org_static` 2-pass port)
-- `remmi/organize/dynamic_inject.py` — per-question OFFLINE organiser (CLI); builds
-  `<qid>.json` events for `org_inject` injection
-- `agent_systems/prompts/system_prompt_org_inject.txt` — read-the-injected-events prompt
-- `experiments/memory_organization/run_pi_org_inject.sh` — org_inject run wrapper (Pi)
+- `remmi/organize/dynamic.py` — per-question OFFLINE organiser (CLI); builds
+  `<qid>.json` events for `org_dynamic` injection
+- `agent_systems/prompts/system_prompt_org_dynamic.txt` — read-the-injected-events prompt
+- `experiments/memory_organization/run_pi_org_dynamic.sh` — org_dynamic run wrapper (Pi)
 - `agent_systems/memory_variants.py` — `org_*` sandbox build modes
 - `agent_systems/prompts/system_prompt_org.txt` — index-first answering prompt
-- `agent_systems/prompts/system_prompt_org_dynamic.txt` — organize-then-answer prompt
+- `agent_systems/prompts/system_prompt_org_remmi0.txt` — organize-then-answer prompt

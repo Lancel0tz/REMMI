@@ -103,6 +103,9 @@ agsys_normalize_memory_mode() {
     orgd|organized_dynamic)
       mode="org_dynamic"
       ;;
+    orgr0|organized_remmi0)
+      mode="org_remmi0"
+      ;;
     orgx|organized_hybrid)
       mode="org_hybrid"
       ;;
@@ -161,6 +164,9 @@ agsys_memory_tag_suffix() {
       ;;
     org_dynamic)
       echo "orgd"
+      ;;
+    org_remmi0)
+      echo "orgr0"
       ;;
     org_hybrid)
       echo "orgx"

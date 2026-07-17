@@ -1,7 +1,10 @@
-"""Dynamic per-question memory organisation with OFFLINE pre-compute + INJECTION.
+"""Dynamic memory organisation: offline, per question (``org_dynamic``).
 
-This is the "inject" variant of dynamic organisation (distinct from ``org_dynamic``
-where the answering agent self-organises at run time via grep + ``timeline.md``).
+Sibling of :mod:`remmi.organize.agent_static`. Both organise offline, outside the
+agent loop; they differ in scope — static organises the whole corpus once, dynamic
+organises per question. Neither is the ``org_remmi*`` line, where the answering
+agent organises in-session (grep/search + ``timeline.md``) and so re-sends its
+growing context on every organise turn.
 
 Here, for each question we:
   1. take the top-N retrieved-relevant memory items (from a precomputed
@@ -14,15 +17,16 @@ At agent run time the harness injects ``<qid>.json`` into the sandbox as
 ``agent_systems/scripts/pi/run_pi.sh``). The answering agent reads a focused,
 pre-organised shortlist instead of paying to organise in-session.
 
-Original Qwen3.6-27B / Pi result on ATM-Bench-Hard: this offline-inject variant
-was the token/QS winner (organise cost paid once offline, tiny per item; the
-answerer's context stays small). See ``experiments/memory_organization``.
+Qwen3.6-27B / Pi result on ATM-Bench-Hard: the token/QS winner. Organising outside
+the loop costs one stateless call per question (~0.03M total) against ~4.10M for
+the in-session org_remmi line — a 137x gap that is the whole token story, since the
+answer phase costs both roughly the same. See ``experiments/memory_organization``.
 
 CLI:
-    python -m remmi.organize.dynamic_inject \
+    python -m remmi.organize.dynamic \
         --retrieval output/.../mmrag_answers.jsonl \
         --questions data/atm-bench/atm-bench-hard.json \
-        --out-dir agent_systems/eval_root_orgi/memory/dynamic_events \
+        --out-dir agent_systems/eval_root_orgd/memory/dynamic_events \
         --base-url http://localhost:8000/v1 --model <served-model> --topn 50
 """
 from __future__ import annotations
@@ -33,19 +37,22 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from remmi.organize.agent_static import chat
+from remmi.organize.agent_static import USAGE_TOTALS, chat
 from remmi.organize.heuristic import _clean_city, _stem
 
-# Rough token accounting (chars // 4), reported at the end.
-_TOK = {"in": 0, "out": 0, "calls": 0}
+# Token accounting comes from the endpoint via agent_static.USAGE_TOTALS (real
+# prompt/completion tokens), incremented inside chat().
 
 
-def _est(text: str) -> int:
-    return len(text) // 4
+def _meta_map(
+    image_source: Path, video_source: Path, emails_source: Path | None = None
+) -> dict[str, tuple[str, str, str]]:
+    """id -> (timestamp[:16], city|'email', text[:60]) for photos, videos AND emails.
 
-
-def _meta_map(image_source: Path, video_source: Path) -> dict[str, tuple[str, str, str]]:
-    """id -> (timestamp[:16], city, short_caption[:60]) for photos and videos."""
+    Emails matter: on ATM-Bench-Hard ~43% of the hybrid retriever's top-50 ids are
+    emails, and number questions (nights, counts, prices) are usually answerable
+    only from booking/receipt mail. Dropping them silently caps the organiser.
+    """
     out: dict[str, tuple[str, str, str]] = {}
     for source, key in ((image_source, "image_path"), (video_source, "video_path")):
         with open(source, "r", encoding="utf-8") as handle:
@@ -57,6 +64,17 @@ def _meta_map(image_source: Path, video_source: Path) -> dict[str, tuple[str, st
                     str(r.get("timestamp") or "")[:16],
                     _clean_city(r.get("city")) or "?",
                     str(r.get("short_caption") or r.get("caption") or "")[:60],
+                )
+    if emails_source is not None and Path(emails_source).exists():
+        with open(emails_source, "r", encoding="utf-8") as handle:
+            for r in json.load(handle):
+                eid = str(r.get("id") or "")
+                if not eid:
+                    continue
+                out[eid] = (
+                    str(r.get("timestamp") or "")[:16],
+                    "email",
+                    str(r.get("short_summary") or "")[:60],
                 )
     return out
 
@@ -86,10 +104,7 @@ def organize_question(
         return {"question": question, "n_events": 0, "events": []}
     lines = "\n".join(f"[{i}] {meta[i][0]} | {meta[i][1]} | {meta[i][2]}" for i in ids)
     prompt = _PROMPT.format(q=question, lines=lines)
-    _TOK["in"] += _est(prompt)
-    _TOK["calls"] += 1
     raw = chat([{"role": "user", "content": prompt}], base_url=base_url, model=model)
-    _TOK["out"] += _est(raw or "")
     grouping = None
     try:
         grouping = json.loads(raw[raw.find("{"): raw.rfind("}") + 1])
@@ -115,6 +130,8 @@ def main() -> None:
     ap.add_argument("--questions", required=True, help="ATM-Bench questions JSON (list of {id, question})")
     ap.add_argument("--image-source", default="output/image/qwen3vl2b/batch_results.json")
     ap.add_argument("--video-source", default="output/video/qwen3vl2b/batch_results.json")
+    ap.add_argument("--emails-source", default="data/raw_memory/email/emails.json",
+                    help="emails.json — retrieved email ids are organised too (~43%% of top-50)")
     ap.add_argument("--out-dir", required=True, help="dir to write per-question <qid>.json (query_events)")
     ap.add_argument("--base-url", default="http://localhost:8000/v1")
     ap.add_argument("--model", default="gpt-5-mini")
@@ -124,7 +141,7 @@ def main() -> None:
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    meta = _meta_map(Path(args.image_source), Path(args.video_source))
+    meta = _meta_map(Path(args.image_source), Path(args.video_source), Path(args.emails_source))
     with open(args.questions, "r", encoding="utf-8") as handle:
         qtext = {g["id"]: g["question"] for g in json.load(handle)}
     ret: dict[str, list[str]] = {}
@@ -148,10 +165,16 @@ def main() -> None:
             _qid, _n = fut.result()
             written += 1
 
-    total = _TOK["in"] + _TOK["out"]
+    # Real usage from the endpoint (prompt/completion tokens), not a char estimate.
+    ti, to = USAGE_TOTALS["input_tokens"], USAGE_TOTALS["output_tokens"]
+    total = ti + to
     print(f"dynamic-inject: {written} questions -> {out_dir}")
-    print(f"  organise cost: in={_TOK['in']} out={_TOK['out']} total={total} "
-          f"({total / 1000:.0f}K over {_TOK['calls']} calls, topn={args.topn})")
+    print(f"  ORGANISE cost (measured): in={ti} out={to} total={total} "
+          f"({total / 1000:.1f}K over {USAGE_TOTALS['calls']} calls, topn={args.topn}, model={args.model})")
+    with open(out_dir / "_organise_usage.json", "w", encoding="utf-8") as fh:
+        json.dump({"input_tokens": ti, "output_tokens": to, "total": total,
+                   "calls": USAGE_TOTALS["calls"], "model": args.model,
+                   "topn": args.topn, "questions": written}, fh, indent=1)
 
 
 if __name__ == "__main__":

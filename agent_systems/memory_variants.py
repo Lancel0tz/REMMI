@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-VALID_MEMORY_MODES = ("sgm", "raw", "descriptive", "org_heuristic", "org_static", "org_dynamic", "org_inject", "org_hybrid", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7", "org_remmi8", "org_remmi9")
+VALID_MEMORY_MODES = ("sgm", "raw", "descriptive", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi0", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7", "org_remmi8", "org_remmi9")
 
 
 def normalize_memory_mode(mode: str) -> str:
@@ -30,8 +30,8 @@ def normalize_memory_mode(mode: str) -> str:
         "organized_static": "org_static",
         "orgd": "org_dynamic",
         "organized_dynamic": "org_dynamic",
-        "orgi": "org_inject",
-        "organized_inject": "org_inject",
+        "orgr0": "org_remmi0",
+        "organized_remmi0": "org_remmi0",
         "orgx": "org_hybrid",
         "organized_hybrid": "org_hybrid",
         "orgr": "org_remmi",
@@ -216,12 +216,18 @@ def build_memory_variant(
     video_records = load_json_list(video_source)
 
     media_manifest: dict[str, Any] = {}
-    if mode in ("sgm", "org_heuristic", "org_static", "org_dynamic", "org_inject", "org_hybrid", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7", "org_remmi8", "org_remmi9"):
+    if mode in ("sgm", "org_heuristic", "org_static", "org_dynamic", "org_hybrid", "org_remmi0", "org_remmi", "org_remmi2", "org_remmi3", "org_remmi4", "org_remmi5", "org_remmi6", "org_remmi7", "org_remmi8", "org_remmi9"):
         # Organized modes keep the full SGM per-item files (recall questions
-        # must still answer with exact item ids); org_heuristic/org_static/
-        # org_hybrid add a compact event index on top, org_dynamic changes only
-        # the prompt (org_hybrid = index + dynamic organize-then-answer prompt),
-        # org_remmi ships the REMMI search tool + compact corpus projection.
+        # must still answer with exact item ids). They differ by WHERE the
+        # organising happens:
+        #   offline, outside the agent loop —
+        #     org_heuristic / org_static / org_hybrid add a compact event index
+        #     built once over the whole corpus (org_hybrid = index + prompt);
+        #     org_dynamic organises per question instead (retrieve top-N, one
+        #     stateless LLM call), injected at run time as query_events.json.
+        #   in-session, inside the agent loop —
+        #     org_remmi0 is prompt-only (agent greps and writes timeline.md);
+        #     org_remmi..org_remmi9 add the REMMI search tool + corpus projection.
         shutil.copy2(image_source, out_dir / "image_metadata.json")
         shutil.copy2(video_source, out_dir / "video_metadata.json")
         if mode in ("org_heuristic", "org_static", "org_hybrid", "org_remmi7"):

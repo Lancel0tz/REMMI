@@ -16,7 +16,9 @@ Memory representation:
     AGSYS_MEMORY_MODE=descriptive    minimal {id, caption} image/video JSON
     AGSYS_MEMORY_MODE=org_heuristic  SGM + organized_memory.json event index (day-gap clustering)
     AGSYS_MEMORY_MODE=org_static     SGM + prebuilt LLM-organized index (set AGSYS_ORGANIZED_MEMORY)
-    AGSYS_MEMORY_MODE=org_dynamic    SGM files; agent self-organises per question (prompt-only variant)
+    AGSYS_MEMORY_MODE=org_dynamic    SGM + per-question events organized offline, injected as query_events.json
+    AGSYS_MEMORY_MODE=org_remmi0     SGM files; agent self-organises in-session with grep (prompt-only variant)
+    AGSYS_MEMORY_MODE=org_remmi9     SGM + REMMI search tool; agent self-organises in-session (tool-optional)
 
 WARNING:
     --force archives the existing eval_root directory tree before rebuilding it.

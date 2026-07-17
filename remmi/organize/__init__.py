@@ -4,18 +4,22 @@ Organisers group long-term personal memory items (images, videos, emails)
 into events/trips and emit a compact ``organized_memory.json`` index that a
 QA agent can read *before* (or instead of) scanning the full per-item files.
 
-Two organisers share one output schema:
+The organisers here all run OFFLINE, outside the answering agent's loop. They
+differ in scope, and the first two share one output schema:
 
 - :mod:`remmi.organize.heuristic` — deterministic day-gap + city-change
-  clustering. No LLM calls; CPU-only.
-- :mod:`remmi.organize.agent_static` — an LLM agent performs a full-corpus
-  organisation pass upfront (map-reduce over item batches) against any
-  OpenAI-compatible endpoint.
+  clustering over the whole corpus. No LLM calls; CPU-only.
+- :mod:`remmi.organize.agent_static` — an LLM organises the whole corpus once,
+  upfront (map-reduce over item batches) against any OpenAI-compatible endpoint.
+- :mod:`remmi.organize.dynamic` — per question instead of per corpus: retrieve
+  the top-N relevant items, organise just those in ONE stateless LLM call, and
+  inject the result at run time as ``memory/query_events.json``.
 
-The third strategy explored on top of these, *dynamic* organisation, needs no
-offline organiser at all: the answering agent organises only the memory
-relevant to the current question inside its own workspace (see
-``agent_systems/prompts/system_prompt_org_dynamic.txt``).
+The contrasting family lives outside this package: the ``org_remmi*`` modes
+(see ``agent_systems/prompts/``) have no offline organiser at all — the answering
+agent organises in-session, writing ``timeline.md`` in its own workspace.
+``org_remmi0`` does this with grep alone; ``org_remmi``..``org_remmi9`` add the
+REMMI search tool (:mod:`remmi.organize.search_pack`).
 """
 
 from remmi.organize.heuristic import (
