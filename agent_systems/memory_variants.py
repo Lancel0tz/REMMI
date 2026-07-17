@@ -30,6 +30,7 @@ def normalize_memory_mode(mode: str) -> str:
         "organized_static": "org_static",
         "orgd": "org_dynamic",
         "organized_dynamic": "org_dynamic",
+        "org_timeline": "org_dynamic",
         "orgx": "org_hybrid",
         "organized_hybrid": "org_hybrid",
         "orgr": "org_remmi",
