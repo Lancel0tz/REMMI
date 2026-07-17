@@ -103,6 +103,31 @@ Codex/GPT-5-mini conclusions (organisation *helps* the mid-strength Qwen answere
   (org_dynamic/scaffold), not asked to organise; self-organisation is a strong-model
   luxury.** (Original Qwen/Pi setting; new data point the recalled runs lacked.)
 
+### Cost, not just tokens (`agent_systems/cost.py`)
+
+Token counts are not comparable across models — a gpt-5-mini organise token and a
+Qwen answer token bill at different rates. `agent_systems/cost.py` prices a run's
+usage against Tokdash's `pricing_db.json` (auto-discovered, or `--pricing-db` /
+`$TOKDASH_PRICING_DB`), keeping **uncached / cache_read / cache_write / output**
+distinct because cache_read is ~10x cheaper than fresh input:
+
+```
+python3 agent_systems/cost.py --usage-summary <run>/usage_summary.json --model qwen3.6-27b
+python3 agent_systems/cost.py --organise-usage <dir>/_organise_usage.json
+```
+
+Two accounting caveats learned the hard way:
+
+- **Report a cost row, not only a token row**, and split it organize / answer / total.
+- **cache_read is only measured if the server reports it.** vLLM has prefix caching
+  on by default but omits `prompt_tokens_details.cached_tokens` from usage unless
+  started with `--enable-prompt-tokens-details`. Without that flag every input token
+  prices as full-rate uncached, so the cost is an **upper bound** — and one that is
+  biased *against* the in-session organisers (`org_remmi*`), whose re-sent growing
+  context is exactly what a real prompt cache discounts most. The offline organisers
+  (`org_dynamic`, `org_static`) have little to cache, so their cost is near-exact.
+  Enable that flag when the cost comparison itself is the result.
+
 ## Held-out generalization (out-of-distribution overfit check)
 
 Because the hard split is only 31 questions in total, no in-distribution
