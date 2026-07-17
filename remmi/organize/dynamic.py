@@ -37,7 +37,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
-from remmi.organize.agent_static import USAGE_TOTALS, chat
+from remmi.organize.agent_static import USAGE_TOTALS, _parse_json_object, chat
 from remmi.organize.heuristic import _clean_city, _stem
 
 # Token accounting comes from the endpoint via agent_static.USAGE_TOTALS (real
@@ -97,6 +97,7 @@ def organize_question(
     base_url: str,
     model: str,
     topn: int,
+    extra_body: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """LLM-organise the top-N retrieved items for one question into events."""
     ids = [i for i in retrieval_ids[:topn] if i in meta]
@@ -104,13 +105,15 @@ def organize_question(
         return {"question": question, "n_events": 0, "events": []}
     lines = "\n".join(f"[{i}] {meta[i][0]} | {meta[i][1]} | {meta[i][2]}" for i in ids)
     prompt = _PROMPT.format(q=question, lines=lines)
-    raw = chat([{"role": "user", "content": prompt}], base_url=base_url, model=model)
-    grouping = None
-    try:
-        grouping = json.loads(raw[raw.find("{"): raw.rfind("}") + 1])
-    except Exception:
-        pass
-    events = (grouping or {}).get("events", []) if grouping else []
+    raw = chat([{"role": "user", "content": prompt}], base_url=base_url, model=model,
+               extra_body=extra_body)
+    # _parse_json_object strips <think> blocks: a reasoning organiser (Qwen3.x) puts
+    # braces in its trace, which a naive first-{-to-last-} slice never parses.
+    grouping = _parse_json_object(raw)
+    if grouping is None:
+        return {"question": question, "n_events": 0, "events": [], "parse_failed": True,
+                "raw_reply": raw[:2000]}
+    events = grouping.get("events", [])
     rich = []
     for event in events:
         items = [
@@ -137,7 +140,14 @@ def main() -> None:
     ap.add_argument("--model", default="gpt-5-mini")
     ap.add_argument("--topn", type=int, default=50)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--no-think", action="store_true",
+                    help="vLLM only: disable the organiser's reasoning trace "
+                         "(chat_template_kwargs.enable_thinking=false). Matches the "
+                         "answerer's no-think regime and cuts organise output tokens.")
     args = ap.parse_args()
+
+    extra_body = ({"chat_template_kwargs": {"enable_thinking": False}}
+                  if args.no_think else None)
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -150,20 +160,25 @@ def main() -> None:
             x = json.loads(line)
             ret[x["id"]] = x.get("retrieval_ids", [])
 
-    def work(qid: str) -> tuple[str, int]:
+    def work(qid: str) -> tuple[str, int, bool]:
         payload = organize_question(
             qid, qtext[qid], ret.get(qid, []), meta,
             base_url=args.base_url, model=args.model, topn=args.topn,
+            extra_body=extra_body,
         )
         with open(out_dir / f"{qid}.json", "w", encoding="utf-8") as fh:
             json.dump(payload, fh, ensure_ascii=False, indent=1)
-        return qid, payload["n_events"]
+        return qid, payload["n_events"], bool(payload.get("parse_failed"))
 
-    written = 0
+    written = empty = failed = 0
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
         for fut in as_completed([ex.submit(work, q) for q in qtext]):
-            _qid, _n = fut.result()
+            qid, n_events, parse_failed = fut.result()
             written += 1
+            failed += parse_failed
+            if not n_events:
+                empty += 1
+                print(f"  ⚠️  {qid}: 0 events{' (reply did not parse)' if parse_failed else ''}")
 
     # Real usage from the endpoint (prompt/completion tokens), not a char estimate.
     ti, to = USAGE_TOTALS["input_tokens"], USAGE_TOTALS["output_tokens"]
@@ -174,7 +189,19 @@ def main() -> None:
     with open(out_dir / "_organise_usage.json", "w", encoding="utf-8") as fh:
         json.dump({"input_tokens": ti, "output_tokens": to, "total": total,
                    "calls": USAGE_TOTALS["calls"], "model": args.model,
-                   "topn": args.topn, "questions": written}, fh, indent=1)
+                   "topn": args.topn, "questions": written,
+                   "empty": empty, "parse_failed": failed}, fh, indent=1)
+
+    # Fail loudly. An empty query_events.json silently degrades the agent to the
+    # baseline (free exploration), so the run still "succeeds" and scores like the
+    # baseline — a whole GPU-day spent measuring nothing. Never let that ship.
+    if empty:
+        print(f"\n❌ {empty}/{written} questions organised into 0 events "
+              f"({failed} replies did not parse). See raw_reply in the <qid>.json files.")
+        if failed:
+            print("   A reasoning organiser (Qwen3.x) with no no-think chat template is "
+                  "the usual cause — its <think> trace breaks naive JSON extraction.")
+        raise SystemExit(1 if empty == written else 0)
 
 
 if __name__ == "__main__":

@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import urllib.request
 from datetime import date
@@ -74,9 +75,23 @@ def _api_key() -> str:
     return ""
 
 
-def chat(messages: list[dict[str, str]], *, base_url: str, model: str, retries: int = 3) -> str:
+def chat(
+    messages: list[dict[str, str]],
+    *,
+    base_url: str,
+    model: str,
+    retries: int = 3,
+    extra_body: dict[str, Any] | None = None,
+) -> str:
+    """One chat completion. ``extra_body`` merges vendor fields into the request.
+
+    Used to pass vLLM's ``chat_template_kwargs`` (e.g. no-think). Left empty by
+    default: OpenAI endpoints reject unknown fields.
+    """
     # No temperature override: gpt-5.x chat completions reject non-default values.
-    payload = json.dumps({"model": model, "messages": messages}).encode("utf-8")
+    body_fields: dict[str, Any] = {"model": model, "messages": messages}
+    body_fields.update(extra_body or {})
+    payload = json.dumps(body_fields).encode("utf-8")
     request = urllib.request.Request(
         f"{base_url.rstrip('/')}/chat/completions",
         data=payload,
@@ -372,17 +387,74 @@ GRAPH_PASS2_SYSTEM = """A trip's sub-events are listed. Give the trip a short la
 Respond with ONLY JSON: {"trip_label": "<short>", "themes": [{"label": "<short>", "event_ids": ["<event id>", ...]}, ...]}. No other text."""
 
 
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+_THINK_OPEN_RE = re.compile(r"^.*?</think>", re.DOTALL | re.IGNORECASE)
+
+
+def _strip_reasoning(text: str) -> str:
+    """Drop <think> blocks from a reasoning model's reply.
+
+    Qwen3.x thinks by default. Its reasoning contains braces, so a naive
+    find('{')..rfind('}') slice starts inside the think block and never parses.
+    Also handles a reply whose opening <think> was swallowed by the template
+    (vLLM pre-closes it), leaving a bare prefix terminated by </think>.
+    """
+    text = _THINK_RE.sub("", text)
+    if "</think>" in text.lower():
+        text = _THINK_OPEN_RE.sub("", text, count=1)
+    return text
+
+
+def _iter_json_objects(text: str):
+    """Yield candidate JSON object substrings by brace-balanced scan (string-aware)."""
+    for start, ch in enumerate(text):
+        if ch != "{":
+            continue
+        depth, in_str, esc = 0, False, False
+        for i in range(start, len(text)):
+            c = text[i]
+            if in_str:
+                if esc:
+                    esc = False
+                elif c == "\\":
+                    esc = True
+                elif c == '"':
+                    in_str = False
+                continue
+            if c == '"':
+                in_str = True
+            elif c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    yield text[start : i + 1]
+                    break
+
+
 def _parse_json_object(raw: str) -> dict[str, Any] | None:
-    """Extract the first JSON object from a chat reply (tolerant of fences/prose)."""
-    text = raw or ""
+    """Extract the first JSON object from a chat reply.
+
+    Tolerant of reasoning traces, code fences and surrounding prose.
+    """
+    text = _strip_reasoning(raw or "")
+    text = re.sub(r"```(?:json)?", "", text)
     start, end = text.find("{"), text.rfind("}")
-    if start < 0 or end <= start:
-        return None
-    try:
-        parsed = json.loads(text[start : end + 1])
-    except Exception:  # noqa: BLE001 - malformed reply -> caller falls back
-        return None
-    return parsed if isinstance(parsed, dict) else None
+    if start >= 0 and end > start:
+        try:  # fast path: the whole span is one object
+            parsed = json.loads(text[start : end + 1])
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:  # noqa: BLE001 - fall through to the balanced scan
+            pass
+    for candidate in _iter_json_objects(text):
+        try:
+            parsed = json.loads(candidate)
+        except Exception:  # noqa: BLE001 - try the next candidate
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
 
 
 def _graph_day_line(index: int, item: Any) -> str:
