@@ -42,6 +42,34 @@ def modes_for(base_tag: str) -> list[tuple[str, str, str]]:
 RESULTS_ROOT = "output/QA_Agent/AgentSystems"
 AGENT = "codex"
 
+# USD per million tokens. Loaded from the local Tokdash pricing DB when
+# installed (same source as the dashboard), else this frozen snapshot
+# (openai.com/api/pricing via tokdash pricing_db, 2026-04).
+_FALLBACK_PRICING = {
+    "gpt-5-mini": {"input": 0.25, "output": 2.0, "cache_read": 0.025},
+    "gpt-5.5": {"input": 5.0, "output": 30.0, "cache_read": 0.5},
+}
+
+
+def load_pricing() -> dict:
+    for candidate in glob.glob(str(Path.home() / ".local/lib/python3*/site-packages/tokdash/pricing_db.json")):
+        try:
+            models = json.load(open(candidate))["models"]
+            return {k: {"input": v["input"], "output": v["output"], "cache_read": v.get("cache_read", v["input"])}
+                    for k, v in models.items() if "input" in v and "output" in v}
+        except Exception:
+            pass
+    return _FALLBACK_PRICING
+
+
+def rates_for(base_tag: str, pricing: dict) -> dict | None:
+    # longest pricing key that prefixes the model tag (gpt-5-mini-medium -> gpt-5-mini)
+    best = None
+    for key in pricing:
+        if base_tag.startswith(key) and (best is None or len(key) > len(best)):
+            best = key
+    return pricing.get(best) if best else None
+
 
 def read_json(path: Path) -> Any:
     with open(path, "r", encoding="utf-8") as handle:
@@ -72,15 +100,19 @@ def collect_mode(eval_root: str, model_tag: str, run_tag: str) -> dict[str, Any]
         trace_file = out / "trace.jsonl"
         if trace_file.exists():
             # billed input includes cached context re-sends; uncached = new content
-            uncached = 0
+            uncached = cached = t_out = 0
             try:
                 with open(trace_file, "r", encoding="utf-8") as handle:
                     for line in handle:
                         if '"turn.completed"' not in line:
                             continue
                         turn_usage = json.loads(line).get("usage", {})
+                        cached += turn_usage.get("cached_input_tokens", 0)
                         uncached += turn_usage.get("input_tokens", 0) - turn_usage.get("cached_input_tokens", 0)
+                        t_out += turn_usage.get("output_tokens", 0)
                 row["uncached_input_tokens"] = uncached
+                row["cached_input_tokens"] = cached
+                row["trace_output_tokens"] = t_out
             except Exception:
                 pass
         rows.append(row)
@@ -134,6 +166,8 @@ def main() -> None:
     parser.add_argument("--json", type=Path, help="also dump the raw comparison as JSON")
     args = parser.parse_args()
 
+    global PRICING
+    PRICING = load_pricing()
     table: list[dict[str, Any]] = []
     for label, eval_root, model_tag in modes_for(args.model_base):
         data = collect_mode(eval_root, model_tag, args.run_tag)
@@ -145,6 +179,17 @@ def main() -> None:
         totals = [r["total_tokens"] for r in rows]
         outs = [r["output_tokens"] for r in rows]
         uncached = [r["uncached_input_tokens"] + r["output_tokens"] for r in rows if "uncached_input_tokens" in r]
+        rates = rates_for(model_tag, PRICING)
+        costs = []
+        if rates:
+            for r in rows:
+                if "uncached_input_tokens" not in r:
+                    continue
+                costs.append(
+                    r["uncached_input_tokens"] / 1e6 * rates["input"]
+                    + r.get("cached_input_tokens", 0) / 1e6 * rates["cache_read"]
+                    + r.get("trace_output_tokens", r["output_tokens"]) / 1e6 * rates["output"]
+                )
         entry: dict[str, Any] = {
             "label": label,
             "n": len(rows),
@@ -156,6 +201,8 @@ def main() -> None:
             "max_tokens": max(totals),
             "output_tokens": sum(outs),
             "mean_uncached": statistics.mean(uncached) if uncached else None,
+            "mean_cost": statistics.mean(costs) if costs else None,
+            "total_cost": sum(costs) if costs else None,
             "qs": qs,
             "per_question_qs": per_q,
         }
@@ -164,19 +211,21 @@ def main() -> None:
         table.append(entry)
 
     print(f"\n## Memory-organization comparison — {args.run_tag} (codex / {args.model_base})\n")
-    print("| Mode | Qs | QS | Billed tok | Mean/Q | Uncached/Q | Max/Q | Unknown% | Tok/QS-pt |")
-    print("|------|---:|---:|-----------:|-------:|-----------:|------:|---------:|----------:|")
+    print("| Mode | Qs | QS | Billed tok | Mean/Q | Uncached/Q | Cost/Q | $/QS-pt | Unknown% |")
+    print("|------|---:|---:|-----------:|-------:|-----------:|-------:|--------:|---------:|")
     for e in table:
         if not e.get("n"):
             print(f"| {e['label']} | 0 | — | — | — | — | — | — | — |")
             continue
         qs_str = f"{e['qs'] * 100:.1f}" if e.get("qs") and e["qs"] <= 1 else (f"{e['qs']:.1f}" if e.get("qs") else "pending")
-        tps = fmt_tokens(e["tokens_per_qs_point"]) if e.get("tokens_per_qs_point") else "—"
         unc = fmt_tokens(e["mean_uncached"]) if e.get("mean_uncached") else "—"
+        qs_val = (e["qs"] * 100 if e.get("qs") and e["qs"] <= 1 else e.get("qs")) or 0
+        cost = f"${e['mean_cost']:.3f}" if e.get("mean_cost") is not None else "—"
+        dpq = f"${e['total_cost'] / qs_val:.3f}" if e.get("total_cost") is not None and qs_val else "—"
         print(
             f"| {e['label']} | {e['n']} | {qs_str} | {fmt_tokens(e['total_tokens'])} "
             f"| {fmt_tokens(e['mean_tokens'])} | {unc} "
-            f"| {fmt_tokens(e['max_tokens'])} | {e['unknown_rate'] * 100:.0f}% | {tps} |"
+            f"| {cost} | {dpq} | {e['unknown_rate'] * 100:.0f}% |"
         )
 
     print("\n(QS 'pending' = ATM judge not yet run for that mode.)")
