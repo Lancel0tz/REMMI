@@ -16,8 +16,7 @@ iteration history, and analysis.
 > org_dynamic in this document — is renamed **`org_timeline`** and is
 > **deprecated** as a method direction; its results below are kept for the
 > capability-interaction analysis. org_dynamic (inject) results with
-> gpt-5-mini / gpt-5.5 answerers are in [`LEADERBOARD.md`](LEADERBOARD.md) and
-> are currently flagged **provisional** — see the open-anomaly section there.
+> gpt-5-mini / gpt-5.5 answerers are in [`LEADERBOARD.md`](LEADERBOARD.md).
 
 
 > **Provenance.** This is a local **rebuild** of exploration originally run on a
