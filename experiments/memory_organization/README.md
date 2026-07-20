@@ -3,6 +3,10 @@
 Three strategies for organizing long-term personal memory before/while
 answering, evaluated on the ATM-Bench agent harness (`agent_systems/`).
 
+📊 **All results live in [`LEADERBOARD.md`](LEADERBOARD.md)** — the single source
+of truth, updated whenever a run changes. This document covers method design,
+iteration history, and analysis.
+
 > **Terminology (2026-07-14, repo-consistent):** **`org_dynamic`** now refers to
 > REMMI's canonical **inject pipeline** — retrieve with the frozen
 > `config/best_routing_config*.json` (routing + reranker), inject the top-k
@@ -12,7 +16,8 @@ answering, evaluated on the ATM-Bench agent harness (`agent_systems/`).
 > org_dynamic in this document — is renamed **`org_timeline`** and is
 > **deprecated** as a method direction; its results below are kept for the
 > capability-interaction analysis. org_dynamic (inject) results with
-> gpt-5-mini / gpt-5.5 answerers are being added.
+> gpt-5-mini / gpt-5.5 answerers are in [`LEADERBOARD.md`](LEADERBOARD.md) and
+> are currently flagged **provisional** — see the open-anomaly section there.
 
 
 > **Provenance.** This is a local **rebuild** of exploration originally run on a
@@ -81,31 +86,17 @@ task is hard and the baseline is weak; on easy questions the number regression
 cancels the open-ended gain. Report v8's advantage as difficulty-conditioned,
 not universal. (5.5 held-out for remmi/v9 pending quota windows.)
 
-## Master results table (all methods × both answerers, USD costs)
+## Master results table
 
-ATM-Bench-Hard, 31 questions, Codex harness, ATM judge `gpt-5-mini`.
-**Cost/Q** = mean USD per question, computed from the per-turn token splits
-(uncached input × input rate + cached input × cache-read rate + output ×
-output rate) with rates from the local **Tokdash pricing DB** (falls back to a
-frozen snapshot; regenerate any time with
-`experiments/memory_organization/compare_modes.py`). **$/QS-pt** = total USD ÷
-QS — dollars per quality point, the headline cost-effectiveness metric.
-Judge cost (~$0.01/leg) excluded. Per-model champion marked 🏆.
+**Moved.** The canonical, living leaderboard for both answerers is
+[`LEADERBOARD.md`](LEADERBOARD.md) — single source of truth, updated whenever a
+run changes, with provenance and a changelog. Do not duplicate those tables here.
 
-#### gpt-5-mini  <sub>(rates: in $0.25/M · out $2/M · cache-read $0.025/M — Tokdash pricing DB)</sub>
+Regenerate the local agent rows with
+`python3 experiments/memory_organization/compare_modes.py --model-base <tag>`;
+`org_dynamic` (inject) rows come from GPU-server runs and are entered by hand.
 
-| Method | QS | num / rec / open | Billed/Q | Uncached/Q | **Cost/Q** | **$/QS-pt** | Total $ | Unk% | Note |
-|--------|---:|:--:|--------:|----------:|-------:|--------:|-------:|---:|------|
-| **sgm (baseline)** | **20.4** | 17 / 36 / 8 | 301k | 65k | $0.028 | $0.042 | $0.86 | 29 | no organisation |
-| **org_heuristic** | **15.3** | 17 / 31 / 0 | 370k | 83k | $0.034 | $0.069 | $1.06 | 19 | day-gap index, no LLM |
-| **org_static** | **24.7** | 17 / 39 / 15 | 451k | 111k | $0.043 | $0.054 | $1.34 | 19 | pure-LLM index, offline (~328k once) |
-| **org_hybrid** | **27.8** | 17 / 38 / 23 | 515k | 103k | $0.046 | $0.051 | $1.42 | 16 | index-guided dynamic |
-| **org_timeline** | **22.3** | 17 / 41 / 8 | 551k | 120k | $0.051 | $0.072 | $1.59 | 29 | self-organise, no tool |
-| **org_remmi (v1)** | **33.2** | 17 / 44 / 31 | 542k | 128k | $0.049 | $0.046 | $1.53 | 6 | retrieval tool, mandated |
-| **remmi_weak (v8)** 🏆 | **38.3** | 33 / 41 / 38 | 425k | 95k | $0.039 | $0.032 | $1.22 | 13 | tool mandated + typed + verified |
-| **remmi (v9)** | **25.2** | 17 / 40 / 15 | 425k | 100k | $0.041 | $0.051 | $1.29 | 19 | tool OPTIONAL + self-organise |
-
-<sub>org_remmi ladder (mini, superseded iterations):</sub>
+<sub>org_remmi ladder (mini, superseded iterations — kept here as iteration history):</sub>
 
 | Method | QS | Billed/Q | Uncached/Q | Cost/Q | Note |
 |--------|---:|--------:|----------:|-------:|------|
@@ -115,19 +106,6 @@ Judge cost (~$0.01/leg) excluded. Per-model champion marked 🏆.
 | org_remmi5 | 25.6 | 358k | 87k | $0.035 | + answer typing A/B |
 | org_remmi6 | 35.5 | 402k | 87k | $0.036 | + 3-way typing |
 | org_remmi7 | 21.5 | 399k | 106k | $0.041 | + event-layer tool (neg) |
-
-#### gpt-5.5  <sub>(rates: in $5/M · out $30/M · cache-read $0.5/M — Tokdash pricing DB)</sub>
-
-| Method | QS | num / rec / open | Billed/Q | Uncached/Q | **Cost/Q** | **$/QS-pt** | Total $ | Unk% | Note |
-|--------|---:|:--:|--------:|----------:|-------:|--------:|-------:|---:|------|
-| **sgm (baseline)** | **36.3** | 33 / 69 / 8 | 296k | 87k | $0.618 | $0.527 | $19.16 | 0 | no organisation |
-| **org_heuristic** | **35.4** | 17 / 75 / 8 | 254k | 84k | $0.603 | $0.528 | $18.71 | 0 | day-gap index, no LLM |
-| **org_static** | **32.2** | 17 / 75 / 0 | 266k | 71k | $0.553 | $0.533 | $17.15 | 0 | pure-LLM index, offline (~328k once) |
-| **org_hybrid** | **32.9** | 17 / 77 / 0 | 419k | 97k | $0.787 | $0.743 | $24.41 | 0 | index-guided dynamic |
-| **org_timeline** | **49.8** | 33 / 62 / 46 | 434k | 93k | $0.770 | $0.479 | $23.87 | 0 | self-organise, no tool |
-| **org_remmi (v1)** | **33.2** | 33 / 69 / 0 | 281k | 67k | $0.559 | $0.522 | $17.32 | 0 | retrieval tool, mandated |
-| **remmi_weak (v8)** | **32.8** | 33 / 68 / 0 | 379k | 85k | $0.670 | $0.633 | $20.77 | 0 | tool mandated + typed + verified |
-| **remmi (v9)** 🏆 | **56.1** | 33 / 78 / 46 | 377k | 89k | $0.714 | $0.395 | $22.15 | 0 | tool OPTIONAL + self-organise |
 
 ## Local rebuild results (2026-07-03, final)
 
