@@ -22,11 +22,19 @@ from remmi.organize.heuristic import _clean_city, _stem
 
 
 def _media_record(record: dict[str, Any], path_key: str, kind: str, rich: bool = False) -> dict[str, Any]:
+    # ocr_text belongs in the INDEXED text, not just in `detail`. The offline
+    # hybrid retriever can afford to rank on captions alone, but an agent asks
+    # value-shaped questions ("how much was the dentist", "invoice total") and
+    # those tokens exist only on the receipt itself. With ocr out of the index a
+    # search for an amount returns nothing, the agent trusts the tool and stops
+    # -- measured: every number question the agent got wrong had its gold receipt
+    # ranked 1-3 by the offline retriever but invisible to this tool.
     parts = [
         str(record.get("short_caption") or ""),
         " ".join(str(t) for t in record.get("tags") or []),
         " ".join(str(e) for e in record.get("entities") or []),
         str(record.get("location_name") or ""),
+        str(record.get("ocr_text") or "")[:600],
     ]
     out = {
         "id": _stem(record.get(path_key, "")),
@@ -41,7 +49,7 @@ def _media_record(record: dict[str, Any], path_key: str, kind: str, rich: bool =
         out["detail"] = {
             "location": str(record.get("location_name") or "")[:160],
             "caption": str(record.get("caption") or "")[:400],
-            "ocr": str(record.get("ocr_text") or "")[:160],
+            "ocr": str(record.get("ocr_text") or "")[:600],
             "tags": [str(t) for t in (record.get("tags") or [])][:10],
             "entities": [str(e) for e in (record.get("entities") or [])][:10],
         }
@@ -54,7 +62,10 @@ def _email_record(record: dict[str, Any], rich: bool = False) -> dict[str, Any]:
         "type": "email",
         "ts": str(record.get("timestamp") or "")[:16],
         "city": "",
-        "text": str(record.get("short_summary") or "").strip(),
+        # Same reasoning as media: booking/receipt mail carries the price in
+        # `detail`, never in the one-line summary.
+        "text": (str(record.get("short_summary") or "").strip() + " "
+                 + str(record.get("detail") or "")[:600]).strip(),
     }
     if rich:
         out["detail"] = {"detail": str(record.get("detail") or "")[:500]}
