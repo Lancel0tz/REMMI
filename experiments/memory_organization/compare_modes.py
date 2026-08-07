@@ -37,6 +37,7 @@ def modes_for(base_tag: str) -> list[tuple[str, str, str]]:
         ("org_remmi8", "agent_systems/eval_root_orgr8", f"{base_tag}-orgr8"),
         ("org_remmi9 (tool-optional)", "agent_systems/eval_root_orgr9", f"{base_tag}-orgr9"),
         ("org_remmi11 (v10 prompt + ocr corpus)", "agent_systems/eval_root_orgr11", f"{base_tag}-orgr11"),
+        ("org_remmi12 (generalist)", "agent_systems/eval_root_orgr12", f"{base_tag}-orgr12"),
     ]
 
 

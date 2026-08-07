@@ -136,6 +136,9 @@ agsys_normalize_memory_mode() {
     orgr11|organized_remmi11)
       mode="org_remmi11"
       ;;
+    orgr12|organized_remmi12)
+      mode="org_remmi12"
+      ;;
     remmi)
       mode="org_remmi9"
       ;;
@@ -197,6 +200,9 @@ agsys_memory_tag_suffix() {
       ;;
     org_remmi11)
       echo "orgr11"
+      ;;
+    org_remmi12)
+      echo "orgr12"
       ;;
     *)
       echo ""
