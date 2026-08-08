@@ -140,13 +140,14 @@ def cmd_frontier():
             ax.errorbar(mc, mq, xerr=sc, yerr=sq, fmt="o", color=FAMC[fam], capsize=3, ms=6)
             ax.annotate(label.split(" (")[0], (mc, mq), fontsize=7.5,
                         xytext=(4, 4), textcoords="offset points")
-            rows.append((title, label, mq, sq, mc, sc))
+            rows.append((title, label, mq, sq, mc, sc, fam, qss, costs))
         # inject reference (server, n=3); 5.5 subscription run has no billed tokens
         if base.startswith("gpt-5-mini"):
             ax.errorbar(0.0067, 14.1, yerr=1.6, fmt="s", color="#9467bd", capsize=3, ms=6)
             ax.annotate("inject (org_dynamic)", (0.0067, 14.1), fontsize=7.5,
                         xytext=(4, 4), textcoords="offset points")
-            rows.append((title, "org_dynamic (inject)", 14.1, 1.6, 0.0067, 0.0))
+            rows.append((title, "org_dynamic (inject)", 14.1, 1.6, 0.0067, 0.0,
+                         "inject", [12.3, 14.3, 15.6], [0.0067]))
         ax.set_xscale("log")
         ax.set_xlabel("Cost per question (USD, API-equivalent)")
         ax.set_title(title)
@@ -160,10 +161,19 @@ def cmd_frontier():
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     for ext in ("png", "pdf"):
         fig.savefig(FIGDIR / f"frontier.{ext}", dpi=200)
-    print(f"\n## (e) frontier -> {FIGDIR}/frontier.png|pdf\n")
+    csv = FIGDIR / "frontier_data.csv"
+    with open(csv, "w") as fh:
+        fh.write("model,system,family,qs_mean,qs_sd,qs_r1,qs_r2,qs_r3,"
+                 "cost_mean_usd,cost_sd,cost_r1,cost_r2,cost_r3\n")
+        for m, label, mq, sq, mc, sc, fam, qss, costs in rows:
+            q3 = (list(qss) + ["", "", ""])[:3]
+            c3 = ([f"{c:.4f}" for c in costs] + ["", "", ""])[:3]
+            fh.write(f"{m},{label},{fam},{mq:.2f},{sq:.2f},"
+                     f"{q3[0]},{q3[1]},{q3[2]},{mc:.4f},{sc:.4f},{c3[0]},{c3[1]},{c3[2]}\n")
+    print(f"\n## (e) frontier -> {FIGDIR}/frontier.png|pdf, data -> {csv}\n")
     print("| model | system | QS | ±sd | Cost/Q | ±sd |")
     print("|---|---|---:|---:|---:|---:|")
-    for m, label, mq, sq, mc, sc in rows:
+    for m, label, mq, sq, mc, sc, _fam, _q, _c in rows:
         print(f"| {m} | {label} | {mq:.1f} | {sq:.1f} | ${mc:.4f} | {sc:.4f} |")
     print("\n(5.5 inject omitted from the cost axis: subscription run, no billed tokens.)")
 
