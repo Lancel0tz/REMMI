@@ -2,7 +2,7 @@
 #
 # org_dynamic (canonical INJECT pipeline) with an OpenAI-API answerer.
 # Retrieval: frozen config/best_routing_config_hard.json (auto-selected) +
-# bge-reranker-base, top-10 evidence injected, single answerer call per Q.
+# Qwen3-Reranker-4B (paper §4: fused top-20 -> rerank -> top-10 evidence injected), single answerer call per Q.
 #
 # For the canonical Qwen3-VL answerer (vLLM + CUDA, insert_raw_images=true)
 # use scripts/slurm_complete_qa_hard.sh on the GPU server instead.
@@ -24,8 +24,8 @@ python3 scripts/eval_with_best_config_complete.py \
   --qa-file "${QA_FILE}" \
   --config-file auto \
   --device "${DEVICE}" \
-  --use-reranker --reranker-model BAAI/bge-reranker-base \
-  --rerank-top-k 50 --retrieval-top-k 10 \
+  --use-reranker --reranker-model Qwen/Qwen3-Reranker-4B \
+  --rerank-top-k 20 --retrieval-top-k 10 \
   --provider openai --api-base https://api.openai.com/v1 --api-key "${KEY}" \
   --model "${MODEL}" --temperature 1 --max-tokens 256 --max-workers 4 \
   --output-dir "${OUT}"

@@ -29,6 +29,7 @@ VLLM_ENDPOINT="${VLLM_ENDPOINT:-http://127.0.0.1:8000/v1/chat/completions}"
 
 # Answerer models
 ANSWERER_MODEL_2B="Qwen/Qwen3-VL-2B-Instruct"
+# NOTE: FP8-quantized checkpoint (served via vLLM); report as such, not plain "Qwen3-VL-8B".
 ANSWERER_MODEL_8B="Qwen/Qwen3-VL-8B-Instruct-FP8"
 
 # Embedding models

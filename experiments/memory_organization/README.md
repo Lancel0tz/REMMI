@@ -3,9 +3,8 @@
 Three strategies for organizing long-term personal memory before/while
 answering, evaluated on the ATM-Bench agent harness (`agent_systems/`).
 
-📊 **All results live in [`LEADERBOARD.md`](LEADERBOARD.md)** — the single source
-of truth, updated whenever a run changes. This document covers method design,
-iteration history, and analysis.
+This document covers method design and iteration history. Result tables are
+kept locally and are not part of the published repository.
 
 > **Terminology (2026-07-14, repo-consistent):** **`org_dynamic`** now refers to
 > REMMI's canonical **inject pipeline** — retrieve with the frozen
@@ -15,8 +14,7 @@ iteration history, and analysis.
 > per-question `timeline.md` inside an agent loop — previously called
 > org_dynamic in this document — is renamed **`org_timeline`** and is
 > **deprecated** as a method direction; its results below are kept for the
-> capability-interaction analysis. org_dynamic (inject) results with
-> gpt-5-mini / gpt-5.5 answerers are in [`LEADERBOARD.md`](LEADERBOARD.md).
+> capability-interaction analysis.
 
 
 > **Provenance.** This is a local **rebuild** of exploration originally run on a
@@ -87,9 +85,7 @@ not universal. (5.5 held-out for remmi/v9 pending quota windows.)
 
 ## Master results table
 
-**Moved.** The canonical, living leaderboard for both answerers is
-[`LEADERBOARD.md`](LEADERBOARD.md) — single source of truth, updated whenever a
-run changes, with provenance and a changelog. Do not duplicate those tables here.
+**Not published.** The living leaderboard is maintained locally (git-ignored).
 
 Regenerate the local agent rows with
 `python3 experiments/memory_organization/compare_modes.py --model-base <tag>`;

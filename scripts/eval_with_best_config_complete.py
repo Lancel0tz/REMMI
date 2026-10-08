@@ -254,10 +254,10 @@ def main():
     )
     p.add_argument(
         "--reranker-model",
-        default="BAAI/bge-reranker-base",
+        default="Qwen/Qwen3-Reranker-4B",
         help="Reranker model name",
     )
-    p.add_argument("--rerank-top-k", type=int, default=50)
+    p.add_argument("--rerank-top-k", type=int, default=20)
     p.add_argument("--reranker-batch-size", type=int, default=1)
     p.add_argument("--reranker-max-length", type=int, default=512)
     p.add_argument("--retrieval-top-k", type=int, default=10)

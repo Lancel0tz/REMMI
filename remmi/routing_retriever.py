@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 """Smart routing retriever with multi-stage filtering and reranking.
 
+.. note:: EXPLORATORY — NOT the path used for the reported results.
+   The 9-strategy rule set here (``adaptive_weights`` / ``adaptive_weights_hard``,
+   baseline m=.10/s=.20/d=.70) was a design-space exploration and does NOT match
+   the frozen BO weights in ``config/``. The reported results come from
+   ``scripts/eval_with_best_config_complete.py``: static BO channel weights plus
+   a per-query VL-weight boost only when the query has visual hints
+   (``--vl-adaptive`` / ``HybridRetriever``). This module is kept for reference
+   and for the ``experiments/routing_optimization`` search scripts.
+
 Instead of fusing all channels into one score, this retriever:
   1. Analyses the query to decide a *routing strategy*
      (BM25-only / dense-only / meta-first / full-hybrid).

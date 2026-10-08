@@ -48,3 +48,14 @@ agent_systems/**/.codex-runtime/
 
 # Personal dissertation drafts (not part of the public artifact)
 dissertation/
+palm2026/
+
+# Local-only results & analysis notes (kept on disk, not published)
+experiments/STD_STATS.md
+experiments/memory_organization/ANALYSIS.md
+experiments/memory_organization/LEADERBOARD.md
+experiments/memory_organization/SERVER_BRIEF_*.md
+experiments/memory_organization/figures/
+experiments/routing_optimization/result.txt
+overleaf-sync.log
+overleaf-sync.sh

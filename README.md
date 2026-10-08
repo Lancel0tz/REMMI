@@ -92,11 +92,11 @@ query-adaptive pipeline:
    - **Dense** — any `BaseRetriever` (e.g. Qwen3 text embeddings, or the added
      Qwen3-VL dual encoder).
    - **Vision** — CLIP-style image matching for visually-grounded queries.
-2. **Query-adaptive routing** — `RoutingRetriever` analyzes per-query signals
-   (date/location, proper nouns, amounts, CJK terms, recall phrasing, visual
-   mentions) and tilts the four channel weights per query, with separate profiles
-   for the standard and `-Hard` splits and a confidence gate that widens channels
-   when the first pass is weak.
+2. **Query-adaptive routing** — static BO channel weights from [`config/`](config),
+   with the vision weight raised per query only when the query contains visual
+   hints (`scripts/eval_with_best_config_complete.py --vl-adaptive`). The richer
+   9-strategy `RoutingRetriever` (all-channel tilting, confidence gate) is an
+   *exploratory* design and is not used for the reported results.
 3. **Fusion + rerank** — Reciprocal Rank Fusion over the routed rankings, then a
    cross-encoder reranker (Qwen3-Reranker-4B) refines top-20 → top-10.
 4. **Optional query decomposition and LLM routing** for multi-evidence queries.
@@ -155,7 +155,7 @@ On Hard, REMMI beats the best prior by **+5.4 QS** (over ATM-RAG 13.8) and
 | &nbsp;&nbsp;− Sparse (BM25) | 35.6 | 71.9 |
 | &nbsp;&nbsp;− Metadata | 35.0 | 77.4 |
 | &nbsp;&nbsp;− Vision | 38.5 | 77.5 |
-| + Per-query routing | 40.0 | 78.7 |
+| + Per-query (VL-only) routing | 40.0 | 78.7 |
 | + Cross-encoder reranker (Qwen3-Reranker-4B) | **42.0** | **83.3** |
 
 *Rows 2–5 remove one channel from the full 4-channel RRF (row 1); the bottom two

@@ -4,6 +4,12 @@ This package is the REMMI contribution on top of [ATM-Bench](https://github.com/
 a hybrid, query-adaptive retrieval method for long-term personalized memory QA
 (the `REMMI (Ours)` row in the top-level [README](../README.md#-results)).
 
+> **Which router is the reported one?** The reported results use static BO channel
+> weights (`config/`) plus a per-query VL-weight boost only for queries with visual
+> hints (`scripts/eval_with_best_config_complete.py`, `--vl-adaptive`). The 9-strategy
+> `RoutingRetriever` (`routing_retriever.py`) is an **exploratory** design that is
+> not used for the headline numbers.
+
 It sits *alongside* the upstream baselines under `memqa/qa_agent_baselines/` and
 plugs into the existing MMRAG pipeline, so the upstream code path is unchanged.
 
